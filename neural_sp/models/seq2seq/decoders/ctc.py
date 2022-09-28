@@ -97,7 +97,7 @@ class CTC(DecoderBase):
         else:
             if LooseVersion(torch.__version__) < LooseVersion("1.7.0"):
                 self.ctc_loss = nn.CTCLoss(reduction="sum")
-            else:
+            else:   # zero_infinity表示是否在Nan时置loss为0
                 self.ctc_loss = nn.CTCLoss(reduction="sum", zero_infinity=True)
 
         self.forced_aligner = CTCForcedAligner()

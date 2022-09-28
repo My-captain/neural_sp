@@ -112,8 +112,7 @@ def append_sos_eos(ys, sos, eos, pad, device, bwd=False, replace_sos=False):
 
     """
     _eos = torch.zeros(1, dtype=torch.int64, device=device).fill_(eos)
-    ys = [np2tensor(np.fromiter(y[::-1] if bwd else y, dtype=np.int64),
-                    device) for y in ys]
+    ys = [np2tensor(np.fromiter(y[::-1] if bwd else y, dtype=np.int64), device) for y in ys]
     if replace_sos:
         ylens = np2tensor(np.fromiter([y[1:].size(0) + 1 for y in ys], dtype=np.int32))  # +1 for <eos>
         ys_in = pad_list([y for y in ys], pad)

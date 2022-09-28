@@ -240,6 +240,8 @@ class TransformerDecoder(DecoderBase):
                             help='1dconv for MMA')
         parser.add_argument('--mocha_quantity_loss_weight', type=float, default=0.0,
                             help='quantity loss weight for MMA')
+        parser.add_argument('--mocha_quantity_loss_start_epoch', type=int, default=0,
+                            help='quantity loss start epoch for MMA')
         parser.add_argument('--mocha_latency_metric', type=str, default='',
                             choices=['', 'ctc_sync'],
                             help='differentiable latency metric for MMA')

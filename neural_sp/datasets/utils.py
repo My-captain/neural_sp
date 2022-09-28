@@ -19,7 +19,7 @@ def count_vocab_size(dict_path):
 def _set_batch_size_seq(batch_size, min_xlen, min_ylen, dynamic_batching, num_replicas):
     if not dynamic_batching:
         return batch_size
-
+    # 对于帧过长/转录文本过长的batch、进行batch_size打折
     if min_xlen <= 800:
         pass
     elif min_xlen <= 1600 or 80 < min_ylen <= 100:
@@ -102,7 +102,7 @@ def sort_bucketing(df, batch_size, batch_size_type, dynamic_batching,
 def shuffle_bucketing(df, batch_size, batch_size_type, dynamic_batching,
                       seed=None, num_replicas=1):
     """Bucket utterances having a similar length and shuffle them for Transformer training.
-
+        生成代表所有batch的桶的序列，并进行shuffle
     Args:
         batch_size (int): size of mini-batch
         batch_size_type (str): type of batch size counting

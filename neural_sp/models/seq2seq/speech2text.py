@@ -420,8 +420,7 @@ class Speech2Text(ModelBase):
             # TODO(hirofumi): fix for Transformer
 
         # encoder
-        eout_dict = self.enc(xs, xlens, task.split('.')[0], streaming,
-                             cnn_lookback, cnn_lookahead)
+        eout_dict = self.enc(xs, xlens, task.split('.')[0], streaming, cnn_lookback, cnn_lookahead)
 
         if self.main_weight < 1 and self.enc_type in ['conv', 'tds', 'gated_conv']:
             for sub in ['sub1', 'sub2']:

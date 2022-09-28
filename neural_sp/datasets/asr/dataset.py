@@ -154,7 +154,7 @@ class CustomDataset(Dataset):
                 setattr(self, 'df_sub' + str(i), df_sub)
             else:
                 setattr(self, 'df_sub' + str(i), None)
-
+        # 80维的帧
         self.wav_input = df['feat_path'][0].split('.')[-1] in ['wav']
         self._input_dim = kaldiio.load_mat(df['feat_path'][0]).shape[-1]
 
@@ -174,7 +174,7 @@ class CustomDataset(Dataset):
                 'xlen'] <= max_n_frames, axis=1)]
             df = df[df.apply(lambda x: x['ylen'] > 0, axis=1)]
             print(f"Removed {n_utts - len(df)} utterances (threshold)")
-
+            # 若采用了CTC、则降采样后的帧数必须>=转录文本数，否则CTC Loss为Nan
             if ctc and subsample_factor > 1:
                 n_utts = len(df)
                 df = df[df.apply(lambda x: x['ylen'] <= (x['xlen'] // subsample_factor), axis=1)]

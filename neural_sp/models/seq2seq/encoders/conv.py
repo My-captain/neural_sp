@@ -198,9 +198,7 @@ class ConvEncoder(EncoderBase):
 class Conv1dBlock(EncoderBase):
     """1d-CNN block."""
 
-    def __init__(self, in_channel, out_channel,
-                 kernel_size, stride, pooling,
-                 dropout, normalization, residual):
+    def __init__(self, in_channel, out_channel, kernel_size, stride, pooling, dropout, normalization, residual):
 
         super(Conv1dBlock, self).__init__()
 
@@ -208,10 +206,7 @@ class Conv1dBlock(EncoderBase):
         self.dropout = nn.Dropout(p=dropout)
 
         # 1st layer
-        self.conv1 = nn.Conv1d(in_channels=in_channel,
-                               out_channels=out_channel,
-                               kernel_size=kernel_size,
-                               stride=1,
+        self.conv1 = nn.Conv1d(in_channels=in_channel, out_channels=out_channel, kernel_size=kernel_size, stride=1,
                                padding=1)
         self._odim = update_lens_1d(torch.IntTensor([in_channel]), self.conv1)[0].item()
         if normalization == 'batch_norm':
@@ -238,10 +233,7 @@ class Conv1dBlock(EncoderBase):
         # Max Pooling
         self.pool = None
         if pooling > 1:
-            self.pool = nn.MaxPool1d(kernel_size=pooling,
-                                     stride=pooling,
-                                     padding=0,
-                                     ceil_mode=True)
+            self.pool = nn.MaxPool1d(kernel_size=pooling, stride=pooling, padding=0, ceil_mode=True)
             # NOTE: If ceil_mode is True, keep last feature when the dimension of features are odd.
             self._odim = update_lens_1d(torch.IntTensor([self._odim]), self.pool)[0].item()
             if self._odim % 2 != 0:
@@ -400,7 +392,6 @@ class LayerNorm2D(nn.Module):
     """Layer normalization for CNN outputs."""
 
     def __init__(self, channel, idim, eps=1e-12):
-
         super(LayerNorm2D, self).__init__()
         self.norm = nn.LayerNorm([channel, idim], eps=eps)
 

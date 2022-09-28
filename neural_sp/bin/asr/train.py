@@ -315,9 +315,7 @@ def main(args):
 
     start_time_train = time.time()
     for ep in range(resume_epoch, args.n_epochs):
-        train_one_epoch(model, train_set, dev_set, eval_sets,
-                        scheduler, reporter, logger, args, amp, scaler,
-                        tasks, teacher, teacher_lm)
+        train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, logger, args, amp, scaler, tasks, teacher, teacher_lm)
 
         # Save checkpoint and validate model per epoch
         if reporter.n_epochs + 1 < args.eval_start_epoch:
@@ -326,9 +324,7 @@ def main(args):
 
             # Save model
             if args.local_rank == 0:
-                scheduler.save_checkpoint(
-                    model, args.save_path, amp=amp,
-                    remove_old=(not is_transformer) and args.remove_old_checkpoints)
+                scheduler.save_checkpoint(model, args.save_path, amp=amp, remove_old=(not is_transformer) and args.remove_old_checkpoints)
         else:
             start_time_eval = time.time()
             # dev
@@ -408,11 +404,11 @@ def train_one_epoch(model, train_set, dev_set, eval_sets,
         for i_task, task in enumerate(tasks):
             if args.use_apex and scaler is not None:
                 with torch.cuda.amp.autocast():
-                    loss, observation = model(batch_train, task=task,
-                                              teacher=teacher, teacher_lm=teacher_lm)
+                    loss, observation = model(batch_train, task=task, teacher=teacher, teacher_lm=teacher_lm)
+
             else:
-                loss, observation = model(batch_train, task=task,
-                                          teacher=teacher, teacher_lm=teacher_lm)
+                loss, observation = model(batch_train, task=task, teacher=teacher, teacher_lm=teacher_lm)
+
             reporter.add_observation(observation)
             if args.distributed:
                 loss *= num_replicas
@@ -422,7 +418,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets,
                 if scaler is not None:
                     scaler.scale(loss).backward()
                 else:
-                    with amp.scale_loss(loss, scheduler.optimizer) as scaled_loss:
+                    with amp.scale_loss(loss, scheduler.optimizer) as scaled_lolm_confss:
                         scaled_loss.backward()
             else:
                 loss.backward()
