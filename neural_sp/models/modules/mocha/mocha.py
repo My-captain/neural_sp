@@ -193,7 +193,7 @@ class MoChA(nn.Module):
         bd_R = klen - 1
         assert bd_L <= bd_R
         attn_state = {}
-
+        # query为token、key与value为encoder的输出
         if aw_prev is None:
             aw_prev = key.new_zeros(bs, self.H_ma, 1, klen)
             aw_prev[:, :, :, 0:1] = key.new_ones(bs, self.H_ma, 1, 1)  # [1, 0, 0 ... 0]

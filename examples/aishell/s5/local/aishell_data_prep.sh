@@ -31,11 +31,13 @@ if [ ! -d $aishell_audio_dir ] || [ ! -f $aishell_text ]; then
 fi
 
 # find wav audio file for train, dev and test resp.
+# 将所有音频的绝对路径整合到local/tmp/wav.flist
 find $aishell_audio_dir -iname "*.wav" > $tmp_dir/wav.flist
 n=`cat $tmp_dir/wav.flist | wc -l`
 [ $n -ne 141925 ] && \
   echo Warning: expected 141925 data data files, found $n
 
+# 搜索出wav.flist中对应数据集的前缀，并分流到对应的数据集中
 grep -i "wav/train" $tmp_dir/wav.flist > $train_dir/wav.flist || exit 1;
 grep -i "wav/dev" $tmp_dir/wav.flist > $dev_dir/wav.flist || exit 1;
 grep -i "wav/test" $tmp_dir/wav.flist > $test_dir/wav.flist || exit 1;

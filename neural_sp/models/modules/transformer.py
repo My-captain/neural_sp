@@ -177,7 +177,7 @@ class TransformerDecoderBlock(nn.Module):
         """Transformer decoder forward pass.
 
         Args:
-            ys (FloatTensor): `[B, L, d_model]`
+            ys (FloatTensor): `[B, L, d_model]`     sos+token序列的embeddings
             yy_mask (ByteTensor): `[B, L (query), L (key)]`
             xs (FloatTensor): encoder outputs. `[B, T, d_model]`
             xy_mask (ByteTensor): `[B, L, T]`

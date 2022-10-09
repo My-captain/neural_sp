@@ -109,7 +109,7 @@ def distillation(logits_student, logits_teacher, ylens, temperature=1.0):
 
 def kldiv_lsm_ctc(logits, ylens):
     """Compute KL divergence loss for label smoothing of CTC and Transducer models.
-
+    这TM是啥？？？KV Divergence——Label smoothing
     Args:
         logits (FloatTensor): `[B, T, vocab]`
         ylens (IntTensor): `[B]`

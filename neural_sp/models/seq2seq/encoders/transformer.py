@@ -558,9 +558,8 @@ class TransformerEncoder(EncoderBase):
         else:
             xx_mask = make_san_mask(xs, xlens + n_cache, unidir, self.lookaheads[0])
             for lth, layer in enumerate(self.layers):
-                xs, cache = layer(xs, xx_mask, cache=self.cache[lth],
-                                  pos_embs=rel_pos_embs, rel_bias=(self.u_bias, self.v_bias))
-                new_cache[lth] = cache
+                xs, cache = layer(xs, xx_mask, cache=self.cache[lth], pos_embs=rel_pos_embs, rel_bias=(self.u_bias, self.v_bias))
+                new_cache[lth] = cache  # new_cache是每个TransformerEncoderBlock的输入token序列
                 if not self.training and not streaming:
                     self.aws_dict['xx_aws_layer%d' % lth] = tensor2np(layer.xx_aws)
                     self.data_dict['elens%d' % lth] = tensor2np(xlens)

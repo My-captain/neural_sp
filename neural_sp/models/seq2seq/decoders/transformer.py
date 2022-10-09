@@ -348,8 +348,7 @@ class TransformerDecoder(DecoderBase):
 
         # XE loss
         if self.att_weight > 0 and (task == 'all' or 'ctc' not in task):
-            loss_att, acc_att, ppl_att, losses_auxiliary = self.forward_att(
-                eouts, elens, ys, trigger_points=trigger_points)
+            loss_att, acc_att, ppl_att, losses_auxiliary = self.forward_att(eouts, elens, ys, trigger_points=trigger_points)
             observation['loss_att'] = tensor2scalar(loss_att)
             observation['acc_att'] = acc_att
             observation['ppl_att'] = ppl_att
@@ -389,7 +388,7 @@ class TransformerDecoder(DecoderBase):
         """
         losses_auxiliary = {}
 
-        # Append <sos> and <eos>
+        # Append <sos> and <eos>        ys_in： sos、token1、token2、tokenN     ys_out：token1、token2、tokenN、eos
         ys_in, ys_out, ylens = append_sos_eos(ys, self.eos, self.eos, self.pad, self.device, self.bwd)
         if not self.training:
             self.data_dict['elens'] = tensor2np(elens)
@@ -402,8 +401,8 @@ class TransformerDecoder(DecoderBase):
         causal_mask = tgt_mask.new_ones(ymax, ymax, dtype=tgt_mask.dtype)
         causal_mask = torch.tril(causal_mask).unsqueeze(0)
         tgt_mask = tgt_mask & causal_mask  # `[B, L (query), L (key)]`
-
-        # Create source-target mask
+        # tgt_mask                  （token_length*token_length）是为了解码时，只进行前向注意
+        # Create source-target mask （token_length*encoderOut_length）解码器的cross-attention的mask
         src_mask = make_pad_mask(elens.to(self.device)).unsqueeze(1).repeat([1, ymax, 1])  # `[B, L, T]`
 
         # Create attention padding mask for quantity loss
