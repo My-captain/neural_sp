@@ -94,7 +94,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -e ${data}/.done_stage_1
     echo ============================================================================
 
     for x in train dev test; do
-        steps/make_fbank.sh --nj 32 --cmd "$train_cmd" --write_utt2num_frames true ${data}/${x} ${data}/log/make_fbank/${x} ${data}/fbank || exit 1;
+        # train_cmd被定义为run.pl -mem 2G（用于指定占用内存的上限）
+        steps/make_fbank.sh --nj 32 --write_utt2num_frames true ${data}/${x} ${data}/log/make_fbank/${x} ${data}/fbank || exit 1;
         utils/fix_data_dir.sh ${data}/${x}
     done
 

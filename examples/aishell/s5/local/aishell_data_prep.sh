@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Copyright 2017 Xingyu Na
-# Apache 2.0
+#   生成所有utt的绝对路径>> local/tmp/wav.flist
+#   最终生成spk2utt utt2spk wav.scp text输出到AiShell/对应的train/dev目录下
 
 . ./path.sh || exit 1;
 
@@ -18,7 +18,6 @@ train_dir=${data}/local/train
 dev_dir=${data}/local/dev
 test_dir=${data}/local/test
 tmp_dir=${data}/local/tmp
-
 mkdir -p $train_dir
 mkdir -p $dev_dir
 mkdir -p $test_dir
@@ -48,15 +47,26 @@ grep -i "wav/test" $tmp_dir/wav.flist > $test_dir/wav.flist || exit 1;
 for dir in $train_dir $dev_dir $test_dir; do
   echo Preparing $dir transcriptions
   #  sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{print $NF}'
+  # sed -e(expression)用于替换.wav后缀
+  # awk -F用于指定分隔符，$NF表示最后一个字段
+
+  # 提取出所有utt的id序列 >> local/train/utt.list
   sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{print $NF}' > $dir/utt.list
-  sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{i=NF-1;printf("%s %s\n",$NF,$i)}'
+  # utt_id与speaker的对应关系 >> local/train/utt2spk_all
   sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{i=NF-1;printf("%s %s\n",$NF,$i)}' > $dir/utt2spk_all
+  # 生成utt-id与绝对路径对应关系 >> local/train/wav.scp_all
   paste -d' ' $dir/utt.list $dir/wav.flist > $dir/wav.scp_all
+  # 根据utt-id序列，筛选出utt-id对应的转录文本 >> local/train/transcripts.txt
   utils/filter_scp.pl -f 1 $dir/utt.list $aishell_text > $dir/transcripts.txt
+  # 重写utt.list（有可能部分utt的转录文本缺失）
   awk '{print $1}' $dir/transcripts.txt > $dir/utt.list
+  # 筛选出utt-id与speaker的对应关系 >> local/train/utt2spk
   utils/filter_scp.pl -f 1 $dir/utt.list $dir/utt2spk_all | sort -u > $dir/utt2spk
+  # 生成utt-id与绝对路径对应关系 >> local/train/wav.scp
   utils/filter_scp.pl -f 1 $dir/utt.list $dir/wav.scp_all | sort -u > $dir/wav.scp
+  # 去重后输出utt-id对应的转录文本 >> local/train/text
   sort -u $dir/transcripts.txt > $dir/text
+  # 生成speaker-id与utt-id列表 >> local/train/spk2utt
   utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
 done
 
