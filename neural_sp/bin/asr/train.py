@@ -371,9 +371,7 @@ def main(args):
     return args.save_path
 
 
-def train_one_epoch(model, train_set, dev_set, eval_sets,
-                    scheduler, reporter, logger, args, amp, scaler,
-                    tasks, teacher, teacher_lm):
+def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, logger, args, amp, scaler, tasks, teacher, teacher_lm):
     """Train model for one epoch."""
     if args.local_rank == 0:
         pbar_epoch = tqdm(total=len(train_set))

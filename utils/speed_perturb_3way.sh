@@ -26,6 +26,7 @@ if [ ${train_set_original} = ${train_set} ];then
 fi
 
 for speed in ${speeds}; do
+  echo "速度扰动：$speed"
   utils/perturb_data_dir_speed.sh ${speed} ${data}/${train_set_original} ${tmpdir}/temp${speed}
 done
 utils/combine_data.sh --extra-files utt2uniq ${data}/${train_set} ${tmpdir}/temp*

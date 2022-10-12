@@ -170,8 +170,7 @@ class CustomDataset(Dataset):
                 df = df.truncate(before=0, after=first_n_utterances - 1)
                 print(f"Select first {len(df)} utterances")
         else:
-            df = df[df.apply(lambda x: min_n_frames <= x[
-                'xlen'] <= max_n_frames, axis=1)]
+            df = df[df.apply(lambda x: min_n_frames <= x['xlen'] <= max_n_frames, axis=1)]
             df = df[df.apply(lambda x: x['ylen'] > 0, axis=1)]
             print(f"Removed {n_utts - len(df)} utterances (threshold)")
             # 若采用了CTC、则降采样后的帧数必须>=转录文本数，否则CTC Loss为Nan

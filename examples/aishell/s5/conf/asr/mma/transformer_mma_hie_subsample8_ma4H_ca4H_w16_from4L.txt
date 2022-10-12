@@ -1,0 +1,8 @@
+--local_world_size=1 --corpus aishell1 --use_wandb false
+--config /home/zliu-elliot/Desktop/computerMusic/alignment/neural_sp/examples/aishell/s5/conf/asr/mma/transformer_mma_hie_subsample8_ma4H_ca4H_w16_from4L.yaml
+ --config2 --n_gpus 1 --cudnn_benchmark true --cudnn_deterministic false --pin_memory false
+ --train_set /media/zliu-elliot/Jarvis/aishell/dataset/train_sp.tsv
+ --dev_set /media/zliu-elliot/Jarvis/aishell/dataset/dev_sp.tsv
+ --unit char --dict /media/zliu-elliot/Jarvis/aishell/dict/train_sp.txt
+ --model_save_dir /media/zliu-elliot/Jarvis/neural_sp/transformer_mma_hie_subsample8_ma4H_ca4H_w16_from4L/aishell1/asr
+  --asr_init --external_lm --stdout false --resume
