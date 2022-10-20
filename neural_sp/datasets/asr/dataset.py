@@ -139,9 +139,10 @@ class CustomDataset(Dataset):
                 setattr(self, '_vocab_sub' + str(i), -1)
 
         # Load dataset tsv file
-        chunk = pd.read_csv(tsv_path, encoding='utf-8',
-                            delimiter='\t', chunksize=1000000)
+        chunk = pd.read_csv(tsv_path, encoding='utf-8', delimiter='\t', chunksize=1000000)
         df = pd.concat(chunk)
+        # warn：debug时缩小数据集
+        df = df[:3200]
         df = df.loc[:, ['utt_id', 'speaker', 'feat_path',
                         'xlen', 'xdim', 'text', 'token_id', 'ylen', 'ydim']]
         for i in range(1, 3):

@@ -126,6 +126,16 @@ class Reporter(object):
         if self.use_wandb and value is not None:
             wandb.log({key: value}, step=self._step, commit=False)
 
+    def add_image(self, tag, img_tensor, dataformats='CHW'):
+        """Add image to tensorboard and wandb."""
+        if self.tf_writer is not None and tag is not None and img_tensor is not None:
+            self.tf_writer.add_image(tag, img_tensor, global_step=self._epoch+1, dataformats=dataformats)
+
+    def add_figure(self, tag, figure):
+        """Add matplotlib Figure to tensorboard and wandb."""
+        if self.tf_writer is not None and tag is not None and figure is not None:
+            self.tf_writer.add_figure(tag, figure, global_step=self._epoch + 1)
+
     def add_tensorboard_histogram(self, key, value):
         """Add histogram value to tensorboard."""
         if self.tf_writer is not None:

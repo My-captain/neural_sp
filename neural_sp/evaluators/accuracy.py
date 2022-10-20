@@ -10,7 +10,7 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
-def eval_accuracy(models, dataloader, batch_size=1, progressbar=False):
+def eval_accuracy(models, dataloader, batch_size=1, progressbar=False, reporter=None):
     """Evaluate a Seq2seq by teacher-forcing accuracy.
 
     Args:
@@ -18,6 +18,7 @@ def eval_accuracy(models, dataloader, batch_size=1, progressbar=False):
         dataloader (torch.utils.data.DataLoader): evaluation dataloader
         batch_size (int): batch size
         progressbar (bool): if True, visualize progressbar
+        reporter: log writer
     Returns:
         accuracy (float): Average accuracy
 
@@ -33,6 +34,9 @@ def eval_accuracy(models, dataloader, batch_size=1, progressbar=False):
 
     for batch in dataloader:
         _, observation = models[0](batch, task='all', is_eval=True)
+        # warn: 按样本打印训练日志
+        # models[0].enhanced_plot_attention(batch_info=batch, reporter=reporter)
+        models[0].enhanced_plot_ctc(batch_info=batch, reporter=reporter)
         n_tokens_b = sum([len(y) for y in batch['ys']])
         _acc = observation.get('acc.att', observation.get('acc.att-sub1', 0))
         total_acc += _acc * n_tokens_b

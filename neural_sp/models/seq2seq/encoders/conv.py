@@ -432,11 +432,15 @@ def update_lens_1d(seq_lens, layer):
 
 def _update_1d(seq_len, layer):
     if type(layer) == nn.MaxPool1d and layer.ceil_mode:
-        return math.ceil(
-            (seq_len + 1 + 2 * layer.padding - (layer.kernel_size - 1) - 1) // layer.stride + 1)
+        # return math.ceil(
+        #     (seq_len + 1 + 2 * layer.padding - (layer.kernel_size - 1) - 1) // layer.stride + 1)
+        return math.ceil(torch.div(seq_len + 1 + 2 * layer.padding - (layer.kernel_size - 1) - 1, layer.stride,
+                                   rounding_mode="floor") + 1)
     else:
-        return math.floor(
-            (seq_len + 2 * layer.padding[0] - (layer.kernel_size[0] - 1) - 1) // layer.stride[0] + 1)
+        # return math.floor(
+        #     (seq_len + 2 * layer.padding[0] - (layer.kernel_size[0] - 1) - 1) // layer.stride[0] + 1)
+        return math.floor(torch.div(seq_len + 2 * layer.padding[0] - (layer.kernel_size[0] - 1) - 1, layer.stride[0],
+                                    rounding_mode="floor") + 1)
 
 
 def update_lens_2d(seq_lens, layer, dim=0):
@@ -461,11 +465,16 @@ def update_lens_2d(seq_lens, layer, dim=0):
 
 def _update_2d(seq_len, layer, dim):
     if type(layer) == nn.MaxPool2d and layer.ceil_mode:
+        # return math.ceil((seq_len + 1 + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1) // layer.stride[dim] + 1)
         return math.ceil(
-            (seq_len + 1 + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1) // layer.stride[dim] + 1)
+            torch.div(seq_len + 1 + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1, layer.stride[dim],
+                      rounding_mode="floor") + 1
+        )
     else:
+        # return math.floor((seq_len + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1) // layer.stride[dim] + 1)
         return math.floor(
-            (seq_len + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1) // layer.stride[dim] + 1)
+            torch.div(seq_len + 2 * layer.padding[dim] - (layer.kernel_size[dim] - 1) - 1,
+                      layer.stride[dim], rounding_mode="floor") + 1)
 
 
 def parse_cnn_config(channels, kernel_sizes, strides, poolings):

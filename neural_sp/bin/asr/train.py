@@ -48,7 +48,6 @@ logger = logging.getLogger(__name__)
 
 
 def main(args):
-
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
@@ -230,8 +229,9 @@ def main(args):
     args.use_apex = args.train_dtype in ["O0", "O1", "O2", "O3"]
     amp, scaler = None, None
     if args.n_gpus >= 1:
-        model.cudnn_setting(deterministic=((not is_transformer) and (not args.cudnn_benchmark)) or args.cudnn_deterministic,
-                            benchmark=(not is_transformer) and args.cudnn_benchmark)
+        model.cudnn_setting(
+            deterministic=((not is_transformer) and (not args.cudnn_benchmark)) or args.cudnn_deterministic,
+            benchmark=(not is_transformer) and args.cudnn_benchmark)
 
         # Mixed precision training setting
         if args.use_apex:
@@ -328,7 +328,7 @@ def main(args):
         else:
             start_time_eval = time.time()
             # dev
-            metric_dev = validate([model.module], dev_set, args, reporter.n_epochs + 1, logger)
+            metric_dev = validate([model.module], dev_set, args, reporter.n_epochs + 1, logger, reporter)
             scheduler.epoch(metric_dev)  # lr decay
             reporter.epoch(metric_dev, name=args.metric)  # plot
             reporter.add_scalar('dev/' + args.metric, metric_dev)
@@ -336,14 +336,12 @@ def main(args):
             if scheduler.is_topk or is_transformer:
                 # Save model
                 if args.local_rank == 0:
-                    scheduler.save_checkpoint(
-                        model, args.save_path, amp=amp,
-                        remove_old=(not is_transformer) and args.remove_old_checkpoints)
+                    scheduler.save_checkpoint(model, args.save_path, amp=amp, remove_old=(not is_transformer) and args.remove_old_checkpoints)
 
                 # test
                 if scheduler.is_topk:
                     for eval_set in eval_sets:
-                        validate([model.module], eval_set, args, reporter.n_epochs, logger)
+                        validate([model.module], eval_set, args, reporter.n_epochs, logger, reporter)
 
             logger.info('Evaluation time: %.2f min' % ((time.time() - start_time_eval) / 60))
 
@@ -371,15 +369,18 @@ def main(args):
     return args.save_path
 
 
-def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, logger, args, amp, scaler, tasks, teacher, teacher_lm):
+def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, logger, args, amp, scaler, tasks,
+                    teacher, teacher_lm):
     """Train model for one epoch."""
     if args.local_rank == 0:
         pbar_epoch = tqdm(total=len(train_set))
     num_replicas = args.local_world_size
     accum_grad_n_steps = max(1, args.accum_grad_n_steps // num_replicas)
+    # 分布式训练时，print_step除以副本数量，即单机打印的时机
     print_step = args.print_step // num_replicas
 
     session_prev = None
+    # 当前累计step数，trick：累计step平滑计算loss
     _accum_n_steps = 0  # reset at every epoch
     epoch_detail_prev = train_set.epoch_detail
     start_time_step = time.time()
@@ -391,6 +392,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
             model.module.reset_session()
         session_prev = batch_train['sessions'][0]
         _accum_n_steps += 1
+        # 通过计算剩余样本，判断此batch是否为当前epoch最后的一个
         num_samples = len(batch_train['utt_ids']) * num_replicas
         n_rest -= num_samples
         is_new_epoch = (n_rest == 0)
@@ -398,7 +400,8 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
         # Compute loss in the training set
         reporter.add_scalar('learning_rate', scheduler.lr)
         if _accum_n_steps == 1:
-            loss_train = 0  # moving average over gradient accumulation
+            # moving average over gradient accumulation
+            loss_train = 0
         for i_task, task in enumerate(tasks):
             if args.use_apex and scaler is not None:
                 with torch.cuda.amp.autocast():
@@ -427,8 +430,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
 
             if (_accum_n_steps >= accum_grad_n_steps or is_new_epoch) and i_task == len(tasks) - 1:
                 if args.clip_grad_norm > 0:
-                    total_norm = torch.nn.utils.clip_grad_norm_(
-                        model.module.parameters(), args.clip_grad_norm)
+                    total_norm = torch.nn.utils.clip_grad_norm_(model.module.parameters(), args.clip_grad_norm)
                     reporter.add_scalar('total_norm.' + task, total_norm)
                 if args.use_apex and scaler is not None:
                     scaler.step(scheduler.optimizer)
@@ -461,9 +463,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
                 xlen = max(len(x) for x in batch_train['ys'])
                 ylen = max(len(y) for y in batch_train['ys_sub1'])
             logger.info("rank:%d, step:%d(ep:%.2f) loss:%.3f(%.3f)/lr:%.7f/bs:%d/xlen:%d/ylen:%d (%.2f min)" %
-                        (args.local_rank, reporter.n_steps, reporter.n_epochs + train_set.epoch_detail,
-                         loss_train, loss_dev, scheduler.lr, num_samples,
-                         xlen, ylen, (time.time() - start_time_step) / 60))
+                        (args.local_rank, reporter.n_steps, reporter.n_epochs + train_set.epoch_detail, loss_train, loss_dev, scheduler.lr, num_samples, xlen, ylen, (time.time() - start_time_step) / 60))
             start_time_step = time.time()
 
         reporter.step()
@@ -474,21 +474,19 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
             model.module.plot_attention()
             model.module.plot_ctc()
 
-        # Ealuate model every 0.1 epoch during MBR training
+        # Evaluate model every 0.1 epoch during MBR training
         if args.mbr_training:
             if int(train_set.epoch_detail * 10) != int(epoch_detail_prev * 10):
                 sub_epoch = int(train_set.epoch_detail * 10) / 10
                 # dev
-                metric_dev = validate([model.module], dev_set, args, sub_epoch, logger)
+                metric_dev = validate([model.module], dev_set, args, sub_epoch, logger, reporter)
                 reporter.epoch(metric_dev, name=args.metric)  # plot
                 # Save model
                 if args.local_rank == 0:
-                    scheduler.save_checkpoint(
-                        model, args.save_path, remove_old=False, amp=amp,
-                        epoch_detail=sub_epoch)
+                    scheduler.save_checkpoint(model, args.save_path, remove_old=False, amp=amp, epoch_detail=sub_epoch)
                 # test
                 for eval_set in eval_sets:
-                    validate([model.module], eval_set, args, sub_epoch, logger)
+                    validate([model.module], eval_set, args, sub_epoch, logger, reporter)
             epoch_detail_prev = train_set.epoch_detail
 
     train_set.reset(is_new_epoch=True)
@@ -498,7 +496,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
         pbar_epoch.close()
 
 
-def validate(models, dataloader, args, epoch, logger):
+def validate(models, dataloader, args, epoch, logger, reporter):
     """Validate performance per epoch."""
     if args.metric == 'edit_distance':
         if args.unit in ['word', 'word_char']:
@@ -532,7 +530,7 @@ def validate(models, dataloader, args, epoch, logger):
         logger.info('Loss (%s, ep:%d): %.5f' % (dataloader.set, epoch, metric))
 
     elif args.metric == 'accuracy':
-        metric = eval_accuracy(models, dataloader, args.batch_size)
+        metric = eval_accuracy(models, dataloader, args.batch_size, progressbar=True, reporter=reporter)
         logger.info('Accuracy (%s, ep:%d): %.3f' % (dataloader.set, epoch, metric))
 
     elif args.metric == 'bleu':

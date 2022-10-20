@@ -45,7 +45,7 @@ class MBR(torch.autograd.Function):
 def cross_entropy_lsm(logits, ys, lsm_prob, ignore_index, training,
                       normalize_length=False):
     """Compute cross entropy loss for label smoothing of sequence-to-sequence models.
-
+    使用了标签平滑的交叉熵
     Args:
         logits (FloatTensor): `[B, T, vocab]`
         ys (LongTensor): Indices of labels. `[B, L]`
@@ -62,8 +62,8 @@ def cross_entropy_lsm(logits, ys, lsm_prob, ignore_index, training,
     logits = logits.view((-1, vocab))  # `[B * T, vocab]`
 
     if lsm_prob == 0 or not training:
-        loss = F.cross_entropy(logits, ys,
-                               ignore_index=ignore_index, reduction='mean')
+        # 无标签平滑/推断，即使用原始交叉熵
+        loss = F.cross_entropy(logits, ys, ignore_index=ignore_index, reduction='mean')
         ppl = np.exp(loss.item())
         if not normalize_length:
             loss *= (ys != ignore_index).sum() / float(bs)

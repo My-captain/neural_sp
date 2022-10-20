@@ -4,8 +4,13 @@
 """Base class for encoders."""
 
 import logging
+import io
 import os
 import shutil
+import PIL.Image
+from torchvision.transforms import ToTensor
+
+import numpy as np
 import torch
 
 from neural_sp.models.base import ModelBase
@@ -110,3 +115,40 @@ class EncoderBase(ModelBase):
             if save_path is not None:
                 fig.savefig(os.path.join(save_path, '%s.png' % k))
             plt.close()
+
+    def _enhanced_plot_attention(self, save_path=None, n_cols=2, batch_info=None, reporter=None):
+        """
+        Plot attention for each head in all encoder layers
+        """
+        matplotlib.rc('font', size=6)
+        from matplotlib import pyplot as plt
+        from matplotlib.ticker import MaxNLocator
+
+        if not hasattr(self, 'aws_dict'):
+            return
+
+        for k, aw in self.aws_dict.items():
+            if aw is None:
+                continue
+
+            lth = k.split('_')[-1].replace('layer', '')
+            elens_l = self.data_dict['elens' + lth]
+
+            for sample_idx, sample_id in enumerate(batch_info["utt_ids"]):
+                plt.clf()
+                n_heads = aw.shape[1]
+                n_cols_tmp = 1 if n_heads == 1 else n_cols
+                fig, axes = plt.subplots(max(1, n_heads // n_cols_tmp), n_cols_tmp, figsize=(8, 8), squeeze=False)
+                for h in range(n_heads):
+                    ax = axes[h // n_cols_tmp, h % n_cols_tmp]
+                    ax.imshow(aw[sample_idx, h, :elens_l[sample_idx], :elens_l[sample_idx]], aspect="auto")
+                    ax.grid(False)
+                    ax.set_xlabel("head%d" % h)
+                    ax.set_ylabel("head%d" % h)
+                    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+                fig.tight_layout()
+                # if save_path is not None:
+                #     fig.savefig(os.path.join(save_path, f'{sample_id}-{k}.png'))
+                reporter.add_figure(f"validate/enc_att_weights/{sample_id}/{k}", fig)
+                plt.close()

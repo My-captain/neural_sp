@@ -98,7 +98,7 @@ class MonotonicEnergy(nn.Module):
     def forward(self, key, query, mask, cache=False,
                 boundary_leftmost=0, boundary_rightmost=100000):
         """Compute monotonic energy.
-
+        query为token embedding；key为encoder output
         Args:
             key (FloatTensor): `[B, klen, kdim]`
             query (FloatTensor): `[B, qlen, qdim]`

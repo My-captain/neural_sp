@@ -292,10 +292,8 @@ class Speech2Text(ModelBase):
                 teacher_lm.eval()
                 teacher_logits = self.generate_lm_logits(batch['ys'], lm=teacher_lm)
 
-            loss_fwd, obs_fwd = self.dec_fwd(eout_dict['ys']['xs'], eout_dict['ys']['xlens'],
-                                             batch['ys'], task,
-                                             teacher_logits, self.recog_params, self.idx2token,
-                                             batch['trigger_points'])
+            loss_fwd, obs_fwd = self.dec_fwd(eout_dict['ys']['xs'], eout_dict['ys']['xlens'], batch['ys'], task,
+                                             teacher_logits, self.recog_params, self.idx2token, batch['trigger_points'])
             loss += loss_fwd
             if isinstance(self.dec_fwd, RNNT):
                 observation['loss.transducer'] = obs_fwd['loss_transducer']
@@ -500,6 +498,25 @@ class Speech2Text(ModelBase):
             self.dec_fwd_sub1._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub1'))
         if getattr(self, 'dec_fwd_sub2', None) is not None:
             self.dec_fwd_sub2._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub2'))
+
+    def enhanced_plot_attention(self, batch_info, reporter):
+        """Plot attention weights during training."""
+        # encoder
+        self.enc._enhanced_plot_attention(mkdir_join(self.save_path, 'enc_att_weights'), n_cols=2, batch_info=batch_info, reporter=reporter)
+        # decoder
+        self.dec_fwd._enhanced_plot_attention(mkdir_join(self.save_path, 'dec_att_weights'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token)
+        if getattr(self, 'dec_fwd_sub1', None) is not None:
+            self.dec_fwd_sub1._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub1'))
+        if getattr(self, 'dec_fwd_sub2', None) is not None:
+            self.dec_fwd_sub2._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub2'))
+
+    def enhanced_plot_ctc(self, batch_info, reporter):
+        """Plot CTC posteriors during training."""
+        self.dec_fwd._enhanced_plot_ctc(mkdir_join(self.save_path, 'ctc'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token)
+        if getattr(self, 'dec_fwd_sub1', None) is not None:
+            self.dec_fwd_sub1._plot_ctc(mkdir_join(self.save_path, 'ctc_sub1'))
+        if getattr(self, 'dec_fwd_sub2', None) is not None:
+            self.dec_fwd_sub2._plot_ctc(mkdir_join(self.save_path, 'ctc_sub2'))
 
     def plot_ctc(self):
         """Plot CTC posteriors during training."""

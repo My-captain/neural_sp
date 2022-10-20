@@ -95,6 +95,8 @@ def add_args_common(parser):
     # evaluation
     parser.add_argument('--print_step', type=int, default=200,
                         help='print log per this value')
+    parser.add_argument('--print_epoch', type=int, default=5,
+                        help='print log per n epoch')
     parser.add_argument('--eval_start_epoch', type=int, default=1,
                         help='first epoch to start evaluation')
     # initialization

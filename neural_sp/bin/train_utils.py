@@ -105,7 +105,7 @@ def set_logger(save_path, stdout=False, rank=0):
 
 
 def set_save_path(save_path):
-    """Change directory name to avoid name overlapping.
+    """防止覆盖，若dir已存在，则升序+1
 
     Args:
         save_path (str): path to save model

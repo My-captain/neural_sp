@@ -179,7 +179,7 @@ class TransformerDecoderBlock(nn.Module):
         Args:
             ys (FloatTensor): `[B, L, d_model]`     sos+token序列的embeddings
             yy_mask (ByteTensor): `[B, L (query), L (key)]`
-            xs (FloatTensor): encoder outputs. `[B, T, d_model]`
+            xs (FloatTensor): encoder outputs. `[B, T, d_model]`    encoder输出的特征向量
             xy_mask (ByteTensor): `[B, L, T]`
             cache (FloatTensor): `[B, L-1, d_model]`
             xy_aws_prev (FloatTensor): `[B, H, L, T]`

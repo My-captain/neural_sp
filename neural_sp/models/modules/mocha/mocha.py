@@ -165,7 +165,7 @@ class MoChA(nn.Module):
                 cache=False, mode='hard', trigger_points=None, eps_wait=-1,
                 linear_decoding=False, streaming=False):
         """Forward pass.
-
+        query为经过self-attention的token embedding； key/value均为encoder输出的特征向量
         Args:
             key (FloatTensor): `[B, klen, kdim]`
             value (FloatTensor): `[B, klen, vdim]`
