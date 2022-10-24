@@ -351,8 +351,7 @@ def main(args):
 
             # Convert to fine-tuning stage
             if reporter.n_epochs == args.convert_to_sgd_epoch:
-                scheduler.convert_to_sgd(model, args.lr, args.weight_decay,
-                                         decay_type='always', decay_rate=0.5)
+                scheduler.convert_to_sgd(model, args.lr, args.weight_decay, decay_type='always', decay_rate=0.5)
 
         if reporter.n_epochs >= args.n_epochs:
             break

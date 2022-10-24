@@ -114,7 +114,7 @@ class DecoderBase(ModelBase):
                 fig.savefig(os.path.join(save_path, '%s.png' % k))
             plt.close()
 
-    def _enhanced_plot_attention(self, save_path=None, batch_info=None, reporter=None, idx2token=None):
+    def _enhanced_plot_attention(self, save_path=None, batch_info=None, reporter=None, idx2token=None, tag="valid"):
         """Plot attention for each head in all decoder layers."""
         if len(getattr(self, 'aws_dict', {}).keys()) == 0:
             return
@@ -164,7 +164,7 @@ class DecoderBase(ModelBase):
                     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
                     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
                 fig.tight_layout()
-                reporter.add_figure(f"validate/dec_att_weights/{sample_id}/{k}", fig)
+                reporter.add_figure(f"{tag}/dec_att_weights/{sample_id}/{k}", fig)
                 plt.close()
 
     def _plot_ctc(self, save_path=None, topk=10):

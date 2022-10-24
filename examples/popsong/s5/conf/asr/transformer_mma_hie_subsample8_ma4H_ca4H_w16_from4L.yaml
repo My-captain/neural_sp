@@ -39,7 +39,7 @@ batch_size: 32
 optimizer: noam
 n_epochs: 2
 convert_to_sgd_epoch: 100
-print_step: 10    # 每隔多少个step打印一次重要讯息
+print_step: 3000    # 每隔多少个step打印一次重要讯息
 print_epoch: 1      # 每隔多少个epoch打印一次重要讯息
 metric: accuracy
 lr_factor: 5.0
