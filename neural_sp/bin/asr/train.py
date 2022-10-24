@@ -328,7 +328,7 @@ def main(args):
         else:
             start_time_eval = time.time()
             # dev
-            metric_dev = validate([model.module], dev_set, args, reporter.n_epochs + 1, logger, reporter)
+            metric_dev = validate([model.module], dev_set, args, reporter.n_epochs + 1, logger, reporter, tag="dev")
             scheduler.epoch(metric_dev)  # lr decay
             reporter.epoch(metric_dev, name=args.metric)  # plot
             reporter.add_scalar('dev/' + args.metric, metric_dev)
@@ -341,7 +341,7 @@ def main(args):
                 # test
                 if scheduler.is_topk:
                     for eval_set in eval_sets:
-                        validate([model.module], eval_set, args, reporter.n_epochs, logger, reporter)
+                        validate([model.module], eval_set, args, reporter.n_epochs, logger, reporter, tag="eval")
 
             logger.info('Evaluation time: %.2f min' % ((time.time() - start_time_eval) / 60))
 
@@ -479,14 +479,14 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
             if int(train_set.epoch_detail * 10) != int(epoch_detail_prev * 10):
                 sub_epoch = int(train_set.epoch_detail * 10) / 10
                 # dev
-                metric_dev = validate([model.module], dev_set, args, sub_epoch, logger, reporter)
+                metric_dev = validate([model.module], dev_set, args, sub_epoch, logger, reporter, tag="dev")
                 reporter.epoch(metric_dev, name=args.metric)  # plot
                 # Save model
                 if args.local_rank == 0:
                     scheduler.save_checkpoint(model, args.save_path, remove_old=False, amp=amp, epoch_detail=sub_epoch)
                 # test
                 for eval_set in eval_sets:
-                    validate([model.module], eval_set, args, sub_epoch, logger, reporter)
+                    validate([model.module], eval_set, args, sub_epoch, logger, reporter, tag="eval")
             epoch_detail_prev = train_set.epoch_detail
 
     train_set.reset(is_new_epoch=True)
@@ -496,7 +496,7 @@ def train_one_epoch(model, train_set, dev_set, eval_sets, scheduler, reporter, l
         pbar_epoch.close()
 
 
-def validate(models, dataloader, args, epoch, logger, reporter):
+def validate(models, dataloader, args, epoch, logger, reporter, tag='valid'):
     """Validate performance per epoch."""
     if args.metric == 'edit_distance':
         if args.unit in ['word', 'word_char']:
@@ -530,7 +530,7 @@ def validate(models, dataloader, args, epoch, logger, reporter):
         logger.info('Loss (%s, ep:%d): %.5f' % (dataloader.set, epoch, metric))
 
     elif args.metric == 'accuracy':
-        metric = eval_accuracy(models, dataloader, args.batch_size, progressbar=True, reporter=reporter)
+        metric = eval_accuracy(models, dataloader, args.batch_size, progressbar=True, reporter=reporter, tag=tag)
         logger.info('Accuracy (%s, ep:%d): %.3f' % (dataloader.set, epoch, metric))
 
     elif args.metric == 'bleu':

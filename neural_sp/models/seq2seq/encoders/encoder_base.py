@@ -116,7 +116,7 @@ class EncoderBase(ModelBase):
                 fig.savefig(os.path.join(save_path, '%s.png' % k))
             plt.close()
 
-    def _enhanced_plot_attention(self, save_path=None, n_cols=2, batch_info=None, reporter=None):
+    def _enhanced_plot_attention(self, save_path=None, n_cols=2, batch_info=None, reporter=None, tag="valid"):
         """
         Plot attention for each head in all encoder layers
         """
@@ -150,5 +150,5 @@ class EncoderBase(ModelBase):
                 fig.tight_layout()
                 # if save_path is not None:
                 #     fig.savefig(os.path.join(save_path, f'{sample_id}-{k}.png'))
-                reporter.add_figure(f"validate/enc_att_weights/{sample_id}/{k}", fig)
+                reporter.add_figure(f"{tag}/enc_att_weights/{sample_id}/{k}", fig)
                 plt.close()

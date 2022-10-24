@@ -499,20 +499,20 @@ class Speech2Text(ModelBase):
         if getattr(self, 'dec_fwd_sub2', None) is not None:
             self.dec_fwd_sub2._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub2'))
 
-    def enhanced_plot_attention(self, batch_info, reporter):
+    def enhanced_plot_attention(self, batch_info, reporter, tag="valid"):
         """Plot attention weights during training."""
         # encoder
-        self.enc._enhanced_plot_attention(mkdir_join(self.save_path, 'enc_att_weights'), n_cols=2, batch_info=batch_info, reporter=reporter)
+        self.enc._enhanced_plot_attention(mkdir_join(self.save_path, 'enc_att_weights'), n_cols=2, batch_info=batch_info, reporter=reporter, tag=tag)
         # decoder
-        self.dec_fwd._enhanced_plot_attention(mkdir_join(self.save_path, 'dec_att_weights'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token)
+        self.dec_fwd._enhanced_plot_attention(mkdir_join(self.save_path, 'dec_att_weights'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token, tag=tag)
         if getattr(self, 'dec_fwd_sub1', None) is not None:
             self.dec_fwd_sub1._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub1'))
         if getattr(self, 'dec_fwd_sub2', None) is not None:
             self.dec_fwd_sub2._plot_attention(mkdir_join(self.save_path, 'dec_att_weights_sub2'))
 
-    def enhanced_plot_ctc(self, batch_info, reporter):
+    def enhanced_plot_ctc(self, batch_info, reporter, tag="valid"):
         """Plot CTC posteriors during training."""
-        self.dec_fwd._enhanced_plot_ctc(mkdir_join(self.save_path, 'ctc'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token)
+        self.dec_fwd._enhanced_plot_ctc(mkdir_join(self.save_path, 'ctc'), batch_info=batch_info, reporter=reporter, idx2token=self.idx2token, tag=tag)
         if getattr(self, 'dec_fwd_sub1', None) is not None:
             self.dec_fwd_sub1._plot_ctc(mkdir_join(self.save_path, 'ctc_sub1'))
         if getattr(self, 'dec_fwd_sub2', None) is not None:

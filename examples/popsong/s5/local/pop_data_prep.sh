@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "pop_data_prep.sh..........."
+
 #   生成所有utt的绝对路径>> local/tmp/wav.flist
 #   最终生成spk2utt utt2spk wav.scp text输出到AiShell/对应的train/dev目录下
 
@@ -32,8 +34,9 @@ fi
 # 将所有音频的绝对路径整合到local/tmp/wav.flist
 find $aishell_audio_dir -iname "*.wav" > $tmp_dir/wav.flist
 n=`cat $tmp_dir/wav.flist | wc -l`
-[ $n -ne 141925 ] && \
-  echo Warning: expected 141925 data data files, found $n
+# 检查总量
+#[ $n -ne 141925 ] && \
+#  echo Warning: expected 141925 data data files, found $n
 
 # 搜索出wav.flist中对应数据集的前缀，并分流到对应的数据集中
 grep -i "wav/train" $tmp_dir/wav.flist > $train_dir/wav.flist || exit 1;

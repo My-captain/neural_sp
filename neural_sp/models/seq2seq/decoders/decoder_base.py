@@ -123,7 +123,8 @@ class DecoderBase(ModelBase):
         from matplotlib.ticker import MaxNLocator
         # 设置中文字体
         plt.rcParams['font.sans-serif'] = ['simhei']
-        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示负号
+        # 用来正常显示负号
+        plt.rcParams['axes.unicode_minus'] = False
 
         elens = self.data_dict['elens']
         ylens = self.data_dict['ylens']
@@ -140,7 +141,7 @@ class DecoderBase(ModelBase):
             for sample_idx, sample_id in enumerate(batch_info["utt_ids"]):
                 plt.clf()
                 fig, axes = plt.subplots(n_rows_tmp, n_cols_tmp, figsize=(4 * n_cols_tmp, 4 * n_rows_tmp), squeeze=False)
-                txt = list(idx2token(self.data_dict['ys'][sample_idx][:ylens[sample_idx] - 1]))
+                txt = idx2token(self.data_dict['ys'][sample_idx][:ylens[sample_idx] - 1], return_list=True)
                 txt.append("EOS")
                 for h in range(n_heads):
                     ax = axes[h // n_cols_tmp, h % n_cols_tmp]
@@ -207,7 +208,7 @@ class DecoderBase(ModelBase):
             plt.savefig(os.path.join(save_path, 'prob.png'))
         plt.close()
 
-    def _enhanced_plot_ctc(self, save_path=None, topk=10, batch_info=None, reporter=None, idx2token=None):
+    def _enhanced_plot_ctc(self, save_path=None, topk=10, batch_info=None, reporter=None, idx2token=None, tag="valid"):
         """Plot CTC posterior probabilities."""
         if self.ctc_weight == 0:
             return
@@ -215,38 +216,42 @@ class DecoderBase(ModelBase):
             return
 
         from matplotlib import pyplot as plt
+        # 设置中文字体
+        plt.rcParams['font.sans-serif'] = ['simhei']
+        # 设置xtick字体大小
+        matplotlib.rcParams['xtick.labelsize'] = 10
+        # 用来正常显示负号
+        plt.rcParams['axes.unicode_minus'] = False
 
         # Clean directory
         if save_path is not None and os.path.isdir(save_path):
             shutil.rmtree(save_path)
             os.mkdir(save_path)
 
-        elen = self.ctc.data_dict['elens'][-1]
-        probs = self.ctc.prob_dict['probs'][-1, :elen]  # `[T, vocab]`
-        # NOTE: show the last utterance in a mini-batch
-        # 对于每个token的概率分布，排序
-        topk_ids = np.argsort(probs, axis=1)
-        topk_ids = topk_ids[:, -topk:]
-
-        plt.clf()
-        n_frames = probs.shape[0]
-        times_probs = np.arange(n_frames)
-        plt.figure(figsize=(20, 8))
-
-        # NOTE: index 0 is reserved for blank
-        for idx in set(topk_ids.reshape(-1).tolist()):
-            if idx == 0:
-                plt.plot(times_probs, probs[:, 0], ':', label='<blank>', color='grey')
-            else:
-                plt.plot(times_probs, probs[:, idx])
-        txt = list(idx2token(np.argmax(probs, axis=1)))
-        plt.xticks(range(len(txt)), txt)
-        plt.xlabel(u'Time [frame]', fontsize=12)
-        plt.ylabel('Posteriors', fontsize=12)
-        plt.xticks(list(range(0, int(n_frames) + 1, 10)))
-        plt.yticks(list(range(0, 2, 1)))
-
-        plt.tight_layout()
-        if save_path is not None:
-            plt.savefig(os.path.join(save_path, 'prob.png'))
-        plt.close()
+        for sample_idx, sample_id in enumerate(batch_info["utt_ids"]):
+            elen = self.ctc.data_dict['elens'][sample_idx]
+            probs = self.ctc.prob_dict['probs'][sample_idx, :elen]  # `[T, vocab]`
+            # NOTE: show the last utterance in a mini-batch
+            # 对于每个token的概率分布，排序
+            topk_ids = np.argsort(probs, axis=1)
+            topk_ids = topk_ids[:, -topk:]
+            plt.clf()
+            n_frames = probs.shape[0]
+            times_probs = np.arange(n_frames)
+            figure = plt.figure(figsize=(16, 2))
+            # NOTE: index 0 is reserved for blank
+            for idx in set(topk_ids.reshape(-1).tolist()):
+                if idx == 0:
+                    plt.plot(times_probs, probs[:, 0], ':', label='<blank>', color='grey')
+                else:
+                    plt.plot(times_probs, probs[:, idx])
+            txt = idx2token(topk_ids[:, -1], return_list=True)
+            plt.xticks(times_probs, txt, rotation=45)
+            plt.xlabel(f"frames({batch_info['text'][sample_idx]})", fontsize=8)
+            plt.ylabel('CTC Posteriors', fontsize=6)
+            plt.yticks(list(range(0, 2, 1)))
+            plt.tight_layout()
+            # if save_path is not None:
+            #     plt.savefig(os.path.join(save_path, f'prob.png'))
+            reporter.add_figure(f"{tag}/CTC/{sample_id}", figure)
+            plt.close()

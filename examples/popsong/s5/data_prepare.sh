@@ -9,7 +9,7 @@ stage=0
 stop_stage=2
 unit=char
 corpus=popsong
-export data=/media/zliu-elliot/Jarvis/PopSong
+export data=/home/zliu-elliot/dataset/PopSong
 
 train_set="train_sp"
 dev_set="dev_sp"
