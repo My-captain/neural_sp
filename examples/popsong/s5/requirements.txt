@@ -1,0 +1,13 @@
+setproctitle
+matplotlib
+omegaconf
+configargparse
+tqdm
+wandb
+tensorboard
+kaldiio
+sentencepiece
+pinyin
+pandas
+nltk
+librosa

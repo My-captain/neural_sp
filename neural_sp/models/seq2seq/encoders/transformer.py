@@ -424,13 +424,13 @@ class TransformerEncoder(EncoderBase):
             xs (FloatTensor): `[B, T, input_dim]`
             xlens (InteTensor): `[B]` (on CPU)
             task (str): ys/ys_sub1/ys_sub2
-            streaming (bool): streaming encoding
+            streaming (bool): streaming encoding     流式成块Encoder
             lookback (bool): truncate leftmost frames for lookback in CNN context
             lookahead (bool): truncate rightmost frames for lookahead in CNN context
         Returns:
             eouts (dict):
-                xs (FloatTensor): `[B, T, d_model]`
-                xlens (InteTensor): `[B]` (on CPU)
+            xs (FloatTensor): `[B, T, d_model]`
+            xlens (InteTensor): `[B]` (on CPU)
 
         """
         eouts = {'ys': {'xs': None, 'xlens': None},
@@ -556,7 +556,7 @@ class TransformerEncoder(EncoderBase):
                 xs = xs[:, :xlens.max()]
 
         else:
-            xx_mask = make_san_mask(xs, xlens + n_cache, unidir, self.lookaheads[0])
+            xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[0])
             for lth, layer in enumerate(self.layers):
                 xs, cache = layer(xs, xx_mask, cache=self.cache[lth], pos_embs=rel_pos_embs, rel_bias=(self.u_bias, self.v_bias))
                 new_cache[lth] = cache  # new_cache是每个TransformerEncoderBlock的输入token序列
@@ -587,14 +587,14 @@ class TransformerEncoder(EncoderBase):
                             1) if streaming and self.cache[lth + 1] is not None else 0
                         if 'relative' in self.pe_type:
                             xs, rel_pos_embs = self.pos_emb(xs, n_cache=n_cache)
-                        xx_mask = make_san_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
+                        xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
                     else:
                         if self.subsample_factors[lth] > 1:
                             if 'relative' in self.pe_type:
                                 xs, rel_pos_embs = self.pos_emb(xs)
-                            xx_mask = make_san_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
+                            xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
                         elif self.lookaheads[lth] != self.lookaheads[lth + 1]:
-                            xx_mask = make_san_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
+                            xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
 
         xs = self.norm_out(xs)
 
@@ -629,7 +629,7 @@ class TransformerEncoder(EncoderBase):
         return xs_sub
 
 
-def make_san_mask(xs, xlens, unidirectional=False, lookahead=0):
+def make_self_attn_mask(xs, xlens, unidirectional=False, lookahead=0):
     """Mask self-attention mask.
 
     Args:
@@ -677,7 +677,7 @@ def make_chunkwise_san_mask(xs, xlens, N_l, N_c, n_chunks):
         xx_mask (ByteTensor): `[B, T (query), T (key)]`
 
     """
-    xx_mask = make_san_mask(xs, xlens)
+    xx_mask = make_self_attn_mask(xs, xlens)
     for chunk_idx in range(n_chunks):
         offset = chunk_idx * N_c
         xx_mask[:, offset:offset + N_c, :max(0, offset - N_l)] = 0

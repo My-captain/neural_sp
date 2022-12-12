@@ -19,7 +19,7 @@ dec_type: transformer
 dec_n_layers: 6
 transformer_dec_pe_type: 1dconv3L  ### this is effective
 transformer_dec_attn_type: mocha
-mocha_n_heads_mono: 4
+mocha_n_heads_mono: 1
 mocha_n_heads_chunk: 4  ###
 mocha_chunk_size: 16  ###
 mocha_init_r: -2.0
@@ -31,15 +31,15 @@ mocha_first_layer: 4  ###
 share_chunkwise_attention: true  ###
 transformer_dec_d_model: 256
 transformer_dec_d_ff: 2048
-transformer_dec_n_heads: 4
+transformer_dec_n_heads: 1
 tie_embedding: false
 ctc_fc_list: "512"
 ### optimization
 batch_size: 32
 optimizer: noam
-n_epochs: 2
+n_epochs: 20
 convert_to_sgd_epoch: 100
-print_step: 3000    # 每隔多少个step打印一次重要讯息
+print_step: 6000    # 每隔多少个step打印一次重要讯息
 print_epoch: 1      # 每隔多少个epoch打印一次重要讯息
 metric: accuracy
 lr_factor: 5.0

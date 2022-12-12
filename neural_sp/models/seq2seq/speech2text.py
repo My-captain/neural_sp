@@ -366,18 +366,15 @@ class Speech2Text(ModelBase):
 
     def encode(self, xs, task='all', streaming=False,
                cnn_lookback=False, cnn_lookahead=False, xlen_block=-1):
-        """Encode acoustic or text features.
-
-        Args:
-            xs (List): length `[B]`, which contains Tensor of size `[T, input_dim]`
-            task (str): all/ys*/ys_sub1*/ys_sub2*
-            streaming (bool): streaming encoding
-            cnn_lookback (bool): truncate leftmost frames for lookback in CNN context
-            cnn_lookahead (bool): truncate rightmost frames for lookahead in CNN context
-            xlen_block (int): input length in a block in the streaming mode
-        Returns:
-            eout_dict (dict):
-
+        """
+        Encode acoustic or text features.
+        :param xs:  length `[B]`, which contains Tensor of size `[T, input_dim]`
+        :param task: all/ys*/ys_sub1*/ys_sub2*
+        :param streaming: streaming encoding
+        :param cnn_lookback: truncate leftmost frames for lookback in CNN context
+        :param cnn_lookahead: truncate rightmost frames for lookahead in CNN context
+        :param xlen_block: input length in a block in the streaming mode
+        :return:
         """
         if self.input_type == 'speech':
             # Frame stacking
@@ -755,13 +752,13 @@ class Speech2Text(ModelBase):
             dir = 'fwd_sub2'
         else:
             raise ValueError(task)
-
+        # prev_utt主要用于带上下文推断的模型（例如多句对话的场景）
         if utt_ids is not None:
             if self.utt_id_prev != utt_ids[0]:
                 self.reset_session()
             self.utt_id_prev = utt_ids[0]
 
-        # Encode input features
+        # 编码输入特征（流式+离线模式）
         if params['recog_streaming_encoding']:
             eouts, elens = self.encode_streaming(xs, params, task)
         else:

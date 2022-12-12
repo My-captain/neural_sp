@@ -38,7 +38,7 @@ def average_checkpoints(model, best_model_path, n_average, topk_list=[]):
         checkpoint_avg = torch.load(best_model_path, map_location='cpu')
         model.load_state_dict(checkpoint_avg['model_state_dict'])
         return model
-
+    # warn 取最后k个模型的权重，求和取平均？why
     n_models = 0
     checkpoint_avg = {'model_state_dict': None}
     if len(topk_list) == 0:

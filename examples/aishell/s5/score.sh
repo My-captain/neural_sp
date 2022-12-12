@@ -3,7 +3,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-model=
+model="/media/zliu-elliot/Thor/neural_sp/PopSong/asr/openSinger_popCS_m4singer/train_sp/conv2Ltransformer256dmodel2048dff12L4Hpeadd_max_pool8_transformer256dmodel2048dff6L1Hpe1dconv3Lmocha_ma1H_ca4H_w16_bias-2.0_qua1.0_share_from4L_HD0.5_noam_lr5.0_bs32_ls0.1_warmup25000_accum8_ctc0.3_27FM2_50TM2/"
 model1=
 model2=
 model3=
@@ -145,6 +145,52 @@ for set in ${eval_set}; do
         recog_dir=${recog_dir}_ensemble2
     fi
     mkdir -p ${recog_dir}
+
+    echo "=====================================================evaluate command=========================================================="
+    echo "CUDA_VISIBLE_DEVICES=${gpu} ${NEURALSP_ROOT}/neural_sp/bin/asr/eval.py \
+        --recog_n_gpus ${n_gpus} \
+        --recog_sets ${data}/dataset/${set}_sp.tsv \
+        --recog_dir ${recog_dir} \
+        --recog_first_n_utt ${first_n} \
+        --recog_unit ${unit} \
+        --recog_metric ${metric} \
+        --recog_model ${model} ${model1} ${model2} ${model3} \
+        --recog_model_bwd ${model_bwd} \
+        --recog_batch_size ${batch_size} \
+        --recog_beam_width ${beam_width} \
+        --recog_max_len_ratio ${max_len_ratio} \
+        --recog_min_len_ratio ${min_len_ratio} \
+        --recog_length_penalty ${length_penalty} \
+        --recog_length_norm ${length_norm} \
+        --recog_coverage_penalty ${coverage_penalty} \
+        --recog_coverage_threshold ${coverage_threshold} \
+        --recog_gnmt_decoding ${gnmt_decoding} \
+        --recog_eos_threshold ${eos_threshold} \
+        --recog_lm ${lm} \
+        --recog_lm_second ${lm_second} \
+        --recog_lm_bwd ${lm_bwd} \
+        --recog_lm_weight ${lm_weight} \
+        --recog_lm_second_weight ${lm_second_weight} \
+        --recog_ctc_weight ${ctc_weight} \
+        --recog_softmax_smoothing ${softmax_smoothing} \
+        --recog_resolving_unk ${resolving_unk} \
+        --recog_fwd_bwd_attention ${fwd_bwd_attention} \
+        --recog_bwd_attention ${bwd_attention} \
+        --recog_reverse_lm_rescoring ${reverse_lm_rescoring} \
+        --recog_asr_state_carry_over ${asr_state_carry_over} \
+        --recog_lm_state_carry_over ${lm_state_carry_over} \
+        --recog_n_average ${n_average} \
+        --recog_oracle ${oracle} \
+        --recog_longform_max_n_frames ${longform_max_n_frames} \
+        --recog_streaming_encoding ${streaming_encoding} \
+        --recog_block_sync ${block_sync} \
+        --recog_block_sync_size ${block_size} \
+        --recog_mma_delay_threshold ${mma_delay_threshold} \
+        --recog_ctc_vad ${vad_free} \
+        --recog_ctc_vad_blank_threshold ${blank_threshold} \
+        --recog_ctc_vad_spike_threshold ${spike_threshold} \
+        --recog_ctc_vad_n_accum_frames ${n_accum_frames} \
+        --recog_stdout ${stdout} || exit 1;"
 
     CUDA_VISIBLE_DEVICES=${gpu} ${NEURALSP_ROOT}/neural_sp/bin/asr/eval.py \
         --recog_n_gpus ${n_gpus} \

@@ -14,10 +14,7 @@ from neural_sp.utils import mkdir_join
 logger = logging.getLogger(__name__)
 
 
-def eval_char(models, dataloader, params, epoch=-1, rank=0,
-              save_dir=None, streaming=False, progressbar=False, task_idx=0,
-              edit_distance=True, fine_grained=False, oracle=False,
-              teacher_force=False):
+def eval_char(models, dataloader, params, epoch=-1, rank=0, save_dir=None, streaming=False, progressbar=False, task_idx=0, edit_distance=True, fine_grained=False, oracle=False, teacher_force=False):
     """Evaluate a character-level model by WER & CER.
 
     Args:
@@ -43,12 +40,10 @@ def eval_char(models, dataloader, params, epoch=-1, rank=0,
 
     """
     if save_dir is None:
-        save_dir = 'decode_' + dataloader.set + '_ep' + \
-            str(epoch) + '_beam' + str(params.get('recog_beam_width'))
+        save_dir = 'decode_' + dataloader.set + '_ep' + str(epoch) + '_beam' + str(params.get('recog_beam_width'))
         save_dir += '_lp' + str(params.get('recog_length_penalty'))
         save_dir += '_cp' + str(params.get('recog_coverage_penalty'))
-        save_dir += '_' + str(params.get('recog_min_len_ratio')) + '_' + \
-            str(params.get('recog_max_len_ratio'))
+        save_dir += '_' + str(params.get('recog_min_len_ratio')) + '_' + str(params.get('recog_max_len_ratio'))
         save_dir += '_lm' + str(params.get('recog_lm_weight'))
 
         ref_trn_path = mkdir_join(models[0].save_path, save_dir, 'ref.trn', rank=rank)

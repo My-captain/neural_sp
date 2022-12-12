@@ -157,7 +157,7 @@ class CustomDataset(Dataset):
                 setattr(self, 'df_sub' + str(i), None)
         # 80维的帧
         self.wav_input = df['feat_path'][0].split('.')[-1] in ['wav']
-        self._input_dim = kaldiio.load_mat(df['feat_path'][0].replace("/home/zliu-elliot/dataset/PopSong/")).shape[-1]
+        self._input_dim = kaldiio.load_mat(df['feat_path'][0]).shape[-1]
 
         # Remove inappropriate utterances
         print(f"Original utterance num: {len(df)}")
