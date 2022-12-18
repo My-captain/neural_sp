@@ -18,6 +18,9 @@
 
 
 ## Transformer-MMA
+
+
+
 ### Train
 - 配置文件： conf/asr/transformer_mma_hie_subsample8_ma4H_ca4H_w16_from4L.yaml
 - train.py参数：
@@ -84,4 +87,50 @@
 --recog_ctc_vad_spike_threshold 0.1
 --recog_ctc_vad_n_accum_frames 1600
 --recog_stdout false
+```
+
+```text
+TransformerEncoder(
+    **ConvEncoder**(
+        Conv2dBlock(
+            Dropout(p=0.0, inplace=False)
+            Conv2d(1, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        )
+        Conv2dBlock(
+            Dropout(p=0.0, inplace=False)
+            Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            MaxPool2d(kernel_size=(2, 2), stride=(2, 2), padding=(0, 0), dilation=1, ceil_mode=True)
+        )
+        Linear(in_features=1280, out_features=256, bias=True)
+    ) -> batch, T//2, 256
+    **PositionalEncoding**(
+        # PositionalEncoding直接与token的embedding相加
+        Dropout(p=0.0, inplace=False)
+    )
+    
+    TransformerEncoderBlock(
+        LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        MultiheadAttentionMechanism(
+            Dropout(p=0.0, inplace=False)
+            (w_key): Linear(in_features=256, out_features=256, bias=True)
+            (w_value): Linear(in_features=256, out_features=256, bias=True)
+            (w_query): Linear(in_features=256, out_features=256, bias=True)
+            (w_out): Linear(in_features=256, out_features=256, bias=True)
+        ) -> batch, T//2, 256
+        Dropout(p=0.1, inplace=False) + 残差（在LayerNorm之前）
+        LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        PositionwiseFeedForward(
+            Linear(in_features=256, out_features=2048, bias=True)
+            ReLU()
+            Dropout(p=0.1, inplace=False)
+            Linear(in_features=2048, out_features=256, bias=True)
+        )
+        Dropout(p=0.1, inplace=False) + 残差（在LayerNorm之前）
+    )  *12    ->   batch, T//8, 256
+    （12个相同的TransformerEncoderBlock
+      每4个中间有一个MaxPool1d降采样，沿着time轴作降采样）
+    
+    LayerNorm((256,), eps=1e-12, elementwise_affine=True)
 ```

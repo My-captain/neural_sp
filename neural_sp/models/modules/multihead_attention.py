@@ -92,30 +92,30 @@ class MultiheadAttentionMechanism(nn.Module):
 
     def forward(self, key, value, query, mask, aw_prev=None, aw_lower=None,
                 cache=False, mode='', trigger_points=None, eps_wait=-1, streaming=False):
-        """Forward pass.
-
+        """
+        多头注意力前向传播
         Args:
-            key (FloatTensor): `[B, klen, kdim]`
-            value (FloatTensor): `[B, klen, vdim]`
-            query (FloatTensor): `[B, qlen, qdim]`
-            mask (ByteTensor): `[B, qlen, klen]`
-            aw_prev: dummy interface
-            cache (bool): cache key, value, and mask
-            mode: dummy interface for MoChA/MMA
-            trigger_points: dummy interface for MoChA/MMA
-            eps_wait: dummy interface for MMA
-            streaming: dummy interface for streaming attention
+            key:        [B, klen, kdim]
+            value:      [B, klen, kdim]
+            query:      [B, qlen, qdim]
+            mask:       [B, qlen, klen]
+            aw_prev:    冗余接口
+            aw_lower:   冗余接口
+            cache:      （用于流式场景）cache key, value, and mask
+            mode:       冗余接口for MoChA/MMA
+            trigger_points:冗余接口for MoChA/MMA
+            eps_wait:    冗余接口for MMA
+            streaming:   （用于流式场景）冗余接口
         Returns:
-            cv (FloatTensor): `[B, qlen, vdim]`
-            aw (FloatTensor): `[B, H, qlen, klen]`
-            attn_state (dict): dummy interface
-
+            cv (FloatTensor):           经过attention的tokens [B, qlen, vdim]
+            attn_weight (FloatTensor):  注意力权重矩阵         [B, H, qlen, klen]
+            attn_state (dict): 冗余接口
         """
         bs, klen = key.size()[: 2]
         qlen = query.size(1)
         attn_state = {}
 
-        # Pre-computation of encoder-side features for computing scores
+        # 对query、key、value进行线性变换
         if self.key is None or not cache:
             self.key = self.w_key(key).view(bs, -1, self.n_heads, self.d_k)  # `[B, klen, H, d_k]`
             self.value = self.w_value(value).view(bs, -1, self.n_heads, self.d_k)  # `[B, klen, H, d_k]`
@@ -125,33 +125,40 @@ class MultiheadAttentionMechanism(nn.Module):
                 assert self.mask.size() == mask_size, (self.mask.size(), mask_size)
             else:
                 self.mask = None
-
         key = self.key
         query = self.w_query(query).view(bs, -1, self.n_heads, self.d_k)  # `[B, qlen, H, d_k]`
 
+        # 计算energy： `[B, qlen, klen, H]`
+        attn_energy = None
         if self.atype == 'scaled_dot':
-            e = torch.einsum("bihd,bjhd->bijh", (query, key)) / self.scale
+            attn_energy = torch.einsum("bihd,bjhd->bijh", (query, key)) / self.scale
         elif self.atype == 'add':
-            e = self.v(torch.tanh(key[:, None] + query[:, :, None]).view(bs, qlen, klen, -1))
-        # e: `[B, qlen, klen, H]`
+            attn_energy = self.v(torch.tanh(key[:, None] + query[:, :, None]).view(bs, qlen, klen, -1))
 
-        # Compute attention weights
+        # 对energy应用Mask
         if self.mask is not None:
-            NEG_INF = float(np.finfo(torch.tensor(0, dtype=e.dtype).numpy().dtype).min)
-            e = e.masked_fill_(self.mask == 0, NEG_INF)  # `[B, qlen, klen, H]`
-        aw = torch.softmax(e, dim=2)
-        aw = self.dropout_attn(aw)
-        aw_masked = aw.clone()
+            NEG_INF = float(np.finfo(torch.tensor(0, dtype=attn_energy.dtype).numpy().dtype).min)
+            # `[B, qlen, klen, H]`
+            attn_energy = attn_energy.masked_fill_(self.mask == 0, NEG_INF)
+        # 计算注意力权重：沿着key做softmax
+        attn_weight = torch.softmax(attn_energy, dim=2)
 
-        # mask out each head independently (HeadDrop)
+        # 对注意力权重矩阵应用Dropout
+        attn_weight = self.dropout_attn(attn_weight)
+        attn_weight_masked = attn_weight.clone()
+
+        # 应用(HeadDrop)：独立地遮盖每个head
         if self.dropout_head > 0 and self.training:
-            aw_masked = aw_masked.permute(0, 3, 1, 2)
-            aw_masked = headdrop(aw_masked, self.n_heads, self.dropout_head)  # `[B, H, qlen, klen]`
-            aw_masked = aw_masked.permute(0, 2, 3, 1)
+            attn_weight_masked = attn_weight_masked.permute(0, 3, 1, 2)
+            # `[B, H, qlen, klen]`
+            attn_weight_masked = headdrop(attn_weight_masked, self.n_heads, self.dropout_head)
+            attn_weight_masked = attn_weight_masked.permute(0, 2, 3, 1)
 
-        cv = torch.einsum("bijh,bjhd->bihd", (aw_masked, self.value))  # `[B, qlen, H, d_k]`
-        cv = cv.contiguous().view(bs, -1, self.n_heads * self.d_k)  # `[B, qlen, H * d_k]`
+        # 最终attention得到的tokens
+        cv = torch.einsum("bijh,bjhd->bihd", (attn_weight_masked, self.value))  # `[B, qlen, H, d_k]`
+        cv = cv.contiguous().view(bs, -1, self.n_heads * self.d_k)              # `[B, qlen, H * d_k]`
+        # 线性变换
         cv = self.w_out(cv)
-        aw = aw.permute(0, 3, 1, 2)  # `[B, H, qlen, klen]`
+        attn_weight = attn_weight.permute(0, 3, 1, 2)           # `[B, H, qlen, klen]`
 
-        return cv, aw, attn_state
+        return cv, attn_weight, attn_state

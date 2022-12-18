@@ -586,11 +586,9 @@ class TransformerDecoder(DecoderBase):
             indices = torch.arange(0, self.vocab, 1, dtype=torch.int64).to(device)
             self.embed_cache = self.embed_token_id(indices)
 
-    def beam_search(self, eouts, elens, params, idx2token=None,
-                    lm=None, lm_second=None, lm_second_bwd=None, ctc_log_probs=None,
-                    nbest=1, exclude_eos=False,
-                    refs_id=None, utt_ids=None, speakers=None,
-                    ensmbl_eouts=[], ensmbl_elens=[], ensmbl_decs=[], cache_states=True):
+    def beam_search(self, eouts, elens, params, idx2token=None, lm=None, lm_second=None, lm_second_bwd=None, ctc_log_probs=None,
+                    nbest=1, exclude_eos=False, refs_id=None, utt_ids=None, speakers=None, ensmbl_eouts=[], ensmbl_elens=[],
+                    ensmbl_decs=[], cache_states=True):
         """Beam search decoding.
 
         Args:
@@ -710,7 +708,7 @@ class TransformerDecoder(DecoderBase):
                 # for the main model
                 causal_mask = eouts.new_ones(i + 1, i + 1, dtype=torch.uint8)
                 causal_mask = torch.tril(causal_mask).unsqueeze(0).repeat([ys.size(0), 1, 1])
-
+                # TODO ？？？
                 out = self.pos_enc(self.embed_token_id(ys), scale=True)  # scaled + dropout
 
                 n_heads_total = 0

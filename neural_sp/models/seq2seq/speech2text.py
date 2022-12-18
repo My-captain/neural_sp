@@ -836,9 +836,7 @@ class Speech2Text(ModelBase):
                 lm_bwd = getattr(self, 'lm_bwd' if dir == 'fwd' else 'lm_bwd', None)
 
                 nbest_hyps_id, aws, scores = getattr(self, 'dec_' + dir).beam_search(
-                    eouts, elens, params, idx2token,
-                    lm, lm_second, lm_bwd, scores_ctc,
-                    params['recog_beam_width'], exclude_eos, refs_id, utt_ids, speakers,
-                    ensmbl_eouts, ensmbl_elens, ensmbl_decs)
+                    eouts, elens, params, idx2token, lm, lm_second, lm_bwd, scores_ctc, params['recog_beam_width'],
+                    exclude_eos, refs_id, utt_ids, speakers, ensmbl_eouts, ensmbl_elens, ensmbl_decs)
 
         return nbest_hyps_id, aws

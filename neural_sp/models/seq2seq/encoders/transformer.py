@@ -165,7 +165,7 @@ class TransformerEncoder(EncoderBase):
         self.bridge_sub1 = None
         self.bridge_sub2 = None
 
-        # for attention plot
+        # 用于绘制注意力图
         self.aws_dict = {}
         self.data_dict = {}
 
@@ -201,8 +201,8 @@ class TransformerEncoder(EncoderBase):
                 self.subsample_layers = nn.ModuleList([Conv1dSubsampler(factor, self._odim)
                                                        for factor in self.subsample_factors])
             elif subsample_type == 'add':
-                self.subsample_layers = nn.ModuleList([AddSubsampler(factor)
-                                                       for factor in self.subsample_factors])
+                # 对于每个EncoderBlock都实例化一个*降采样层*，EncoderBlock后直接根据层数调用指定降采样层
+                self.subsample_layers = nn.ModuleList([AddSubsampler(factor) for factor in self.subsample_factors])
             else:
                 raise NotImplementedError(subsample_type)
 
@@ -442,12 +442,12 @@ class TransformerEncoder(EncoderBase):
         unidir = self.unidir
         lc_bidir = self.lc_bidir
         N_l, N_c, N_r = self.N_l, self.N_c, self.N_r
-
+        # 流式识别
         if streaming and self.streaming_type == 'mask':
             assert xmax <= N_c
         elif streaming and self.streaming_type == 'reshape':
             assert xmax <= (N_l + N_c + N_r)
-
+        # 低延迟双向
         if lc_bidir:
             if self.streaming_type == 'mask' and not streaming:
                 xs = chunkwise(xs, 0, N_c, 0, padding=True)  # `[B * n_chunks, N_c, idim]`
@@ -463,7 +463,7 @@ class TransformerEncoder(EncoderBase):
         if self.conv is None:
             xs = self.embed(xs)
         else:
-            # Path through CNN blocks
+            # 卷积，编码特征
             xs, xlens = self.conv(xs, xlens,
                                   lookback=False if lc_bidir else lookback,
                                   lookahead=False if lc_bidir else lookahead)
@@ -590,6 +590,7 @@ class TransformerEncoder(EncoderBase):
                         xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])
                     else:
                         if self.subsample_factors[lth] > 1:
+                            # 若发生降采样, 则Mask和RelativePosEmbedding都需要更新
                             if 'relative' in self.pe_type:
                                 xs, rel_pos_embs = self.pos_emb(xs)
                             xx_mask = make_self_attn_mask(xs, xlens + n_cache, unidir, self.lookaheads[lth + 1])

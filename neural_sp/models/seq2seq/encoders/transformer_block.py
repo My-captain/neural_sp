@@ -74,6 +74,9 @@ class TransformerEncoderBlock(nn.Module):
         return self._xx_aws
 
     def reset_visualization(self):
+        """
+        重置Encoder的AttentionWeights
+        """
         self._xx_aws = None
 
     def forward(self, xs, xx_mask=None, cache=None,

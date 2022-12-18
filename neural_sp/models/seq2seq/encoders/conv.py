@@ -350,12 +350,12 @@ class Conv2dBlock(EncoderBase):
 
         """
         residual = xs
-
         xs = self.conv1(xs)
         if self.norm1 is not None:
             xs = self.norm1(xs)
         xs = torch.relu(xs)
         xs = self.dropout(xs)
+        # 根据卷积参数，更新tensor长度
         xlens = update_lens_2d(xlens, self.conv1, dim=0)
         stride = self.conv1.stride[self.time_axis]
         if lookback and xs.size(2) > stride:
@@ -364,12 +364,12 @@ class Conv2dBlock(EncoderBase):
         if lookahead and xs.size(2) > stride:
             xs = xs[:, :, :xs.size(2) - stride]
             xlens -= stride
-
+        # 第二个卷积块
         xs = self.conv2(xs)
         if self.norm2 is not None:
             xs = self.norm2(xs)
         if self.residual and xs.size() == residual.size():
-            xs += residual  # NOTE: this is the same place as in ResNet
+            xs += residual
         xs = torch.relu(xs)
         xs = self.dropout(xs)
         xlens = update_lens_2d(xlens, self.conv2, dim=0)

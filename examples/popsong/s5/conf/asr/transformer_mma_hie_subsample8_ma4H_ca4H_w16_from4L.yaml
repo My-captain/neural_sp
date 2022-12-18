@@ -56,7 +56,7 @@ dropout_enc: 0.1
 dropout_dec: 0.1
 dropout_emb: 0.1
 dropout_att: 0.0
-dropout_head: 0.5  ###
+dropout_head: 0.5
 weight_decay: 1e-6
 lsm_prob: 0.1
 ### MTL
