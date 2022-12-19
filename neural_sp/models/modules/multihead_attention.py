@@ -108,7 +108,7 @@ class MultiheadAttentionMechanism(nn.Module):
             streaming:   （用于流式场景）冗余接口
         Returns:
             cv (FloatTensor):           经过attention的tokens [B, qlen, vdim]
-            attn_weight (FloatTensor):  注意力权重矩阵         [B, H, qlen, klen]
+            attn_weight (FloatTensor):  注意力权重矩阵         [B, Head, qlen, klen]
             attn_state (dict): 冗余接口
         """
         bs, klen = key.size()[: 2]

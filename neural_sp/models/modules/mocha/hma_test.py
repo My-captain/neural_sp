@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def hard_monotonic_attention(e_ma, aw_prev, eps_wait, p_threshold=0.5):
-    """Monotonic attention in MoChA at test time.
+    """推断时使用的基于MonotonicEnergy选择停止点（Monotonic attention in MoChA at test time）
 
     Args:
         e_ma (FloatTensor): `[B, H_ma, qlen, klen]`
@@ -18,8 +18,8 @@ def hard_monotonic_attention(e_ma, aw_prev, eps_wait, p_threshold=0.5):
         eps_wait (int): wait time delay for head-synchronous decoding in MMA
         p_threshold (float): threshold for p_choose during at test time
     Returns:
-        alpha (FloatTensor): `[B, H_ma, qlen, klen]`
-        p_choose (FloatTensor): `[B, H_ma, qlen, klen]`
+        alpha (FloatTensor):   基于硬单调MonotonicEnergy得到的停止点概率分布（有一个1，其余为0） [B, H_ma, qlen, klen]
+        p_choose (FloatTensor): 原始MonotonicEnergy的概率分布（浮点型，用于可视化） [B, H_ma, qlen, klen]
 
     """
     bs, H_ma, qlen, klen = e_ma.size()
@@ -28,17 +28,17 @@ def hard_monotonic_attention(e_ma, aw_prev, eps_wait, p_threshold=0.5):
 
     aw_prev = aw_prev[:, :, :, -klen:]
     # assert aw_prev.sum() > 0
-
-    _p_choose = torch.sigmoid(e_ma[:, :, 0:1])  # for visualization
+    # 用于可视化
+    _p_choose = torch.sigmoid(e_ma[:, :, 0:1])
     p_choose = (_p_choose >= p_threshold).float()
 
     # Attend when monotonic energy is above threshold (Sigmoid > p_threshold)
-    # Remove any probabilities before the index chosen at the last time step
-    p_choose *= torch.cumsum(
-        aw_prev[:, :, 0:1, -e_ma.size(3):], dim=-1)  # `[B, H_ma, 1 (qlen), klen]`
+    # 去除上一个时间步的停止点之前的所有概率
+    # [B, H_ma, 1 (qlen), klen]
+    p_choose *= torch.cumsum(aw_prev[:, :, 0:1, -e_ma.size(3):], dim=-1)
 
-    # Now, use exclusive cumprod to remove probabilities after the first
-    # chosen index, like so:
+    # 使用排他性累乘，得到停止点概率分布（去除第一个1后面的概率）
+    # 例如：
     # p_choose                        = [0, 0, 0, 1, 1, 0, 1, 1]
     # 1 - p_choose                    = [1, 1, 1, 0, 0, 1, 0, 0]
     # exclusive_cumprod(1 - p_choose) = [1, 1, 1, 1, 0, 0, 0, 0]

@@ -69,10 +69,8 @@ class MoChA(nn.Module):
 
     def __init__(self, kdim, qdim, adim, odim, atype, chunk_size,
                  n_heads_mono=1, n_heads_chunk=1,
-                 conv1d=False, init_r=-4, eps=1e-6, noise_std=1.0,
-                 no_denominator=False, sharpening_factor=1.0,
-                 dropout=0., dropout_head=0., bias=True, param_init='',
-                 decot=False, decot_delta=2, share_chunkwise_attention=False,
+                 conv1d=False, init_r=-4, eps=1e-6, noise_std=1.0, no_denominator=False, sharpening_factor=1.0,
+                 dropout=0., dropout_head=0., bias=True, param_init='', decot=False, decot_delta=2, share_chunkwise_attention=False,
                  stableemit_weight=0.0):
 
         super().__init__()
@@ -84,9 +82,9 @@ class MoChA(nn.Module):
         self.w = chunk_size
         self.milk = (chunk_size == -1)
         self.n_heads = n_heads_mono
-        self.H_ma = max(1, n_heads_mono)
-        self.H_ca = n_heads_chunk
-        self.H_total = self.H_ma * self.H_ca
+        self.n_head_monotonic = max(1, n_heads_mono)
+        self.n_head_chunkwise_attention = n_heads_chunk
+        self.H_total = self.n_head_monotonic * self.n_head_chunkwise_attention
         self.eps = eps
         self.noise_std = noise_std
         self.no_denom = no_denominator
@@ -112,12 +110,12 @@ class MoChA(nn.Module):
         if chunk_size > 1 or self.milk:
             self.chunk_energy = ChunkEnergy(
                 kdim, qdim, adim, atype,
-                n_heads_chunk if self.share_ca else self.H_ma * n_heads_chunk,
+                n_heads_chunk if self.share_ca else self.n_head_monotonic * n_heads_chunk,
                 bias, param_init)
         else:
             self.chunk_energy = None
 
-        if self.H_ma * n_heads_chunk > 1:
+        if self.n_head_monotonic * n_heads_chunk > 1:
             self.w_value = nn.Linear(kdim, adim, bias=bias)
             self.w_out = nn.Linear(adim, odim, bias=bias)
             if param_init == 'xavier_uniform':
@@ -171,7 +169,7 @@ class MoChA(nn.Module):
             value (FloatTensor): `[B, klen, vdim]`
             query (FloatTensor): `[B, qlen, qdim]`
             mask (ByteTensor): `[B, qlen, klen]`
-            aw_prev (FloatTensor): `[B, H_ma, 1, klen]`
+            aw_prev (FloatTensor): `[B, n_head_monotonic, 1, klen]`
             cache (bool): cache key and mask
             mode (str): parallel/hard
             trigger_points (IntTensor): `[B, qlen]`
@@ -179,11 +177,11 @@ class MoChA(nn.Module):
             linear_decoding (bool): linear-time decoding mode
             streaming (bool): streaming mode (use self.key_tail)
         Returns:
-            cv (FloatTensor): `[B, qlen, vdim]`
-            alpha (FloatTensor): `[B, H_ma, qlen, klen]`
+            cv (FloatTensor): 基于多头单调Chunkwise注意力算出来的token`s embedding [B, qlen, vdim]
+            alpha (FloatTensor): `[B, n_head_monotonic, qlen, klen]`
             attn_state (dict):
-                beta (FloatTensor): `[B, H_ma * H_ca, qlen, klen]`
-                p_choose (FloatTensor): `[B, H_ma, qlen, klen]`
+                beta (FloatTensor): `[B, n_head_monotonic * n_head_chunkwise_attention, qlen, klen]`
+                p_choose (FloatTensor): `[B, n_head_monotonic, qlen, klen]`
 
         """
         klen = key.size(1)
@@ -195,11 +193,11 @@ class MoChA(nn.Module):
         attn_state = {}
         # query为token、key与value为encoder的输出
         if aw_prev is None:
-            aw_prev = key.new_zeros(bs, self.H_ma, 1, klen)
-            aw_prev[:, :, :, 0:1] = key.new_ones(bs, self.H_ma, 1, 1)  # [1, 0, 0 ... 0]
+            aw_prev = key.new_zeros(bs, self.n_head_monotonic, 1, klen)
+            aw_prev[:, :, :, 0:1] = key.new_ones(bs, self.n_head_monotonic, 1, 1)  # [1, 0, 0 ... 0]
 
-        # Compute monotonic energy
-        e_ma = self.monotonic_energy(key, query, mask, cache, bd_L, bd_R)  # `[B, H_ma, qlen, klen]`
+        # Compute monotonic energy      `[B, n_head_monotonic, qlen, klen]`
+        e_ma = self.monotonic_energy(key, query, mask, cache, bd_L, bd_R)
         assert e_ma.size(3) + bd_L == klen, (e_ma.size(), self.bd_L_prev, key.size())
 
         if mode == 'parallel':  # training
@@ -210,7 +208,7 @@ class MoChA(nn.Module):
 
             # mask out each head independently (HeadDrop)
             if self.dropout_head > 0 and self.training:
-                alpha_masked = headdrop(alpha.clone(), self.H_ma, self.dropout_head)
+                alpha_masked = headdrop(alpha.clone(), self.n_head_monotonic, self.dropout_head)
             else:
                 alpha_masked = alpha.clone()
         elif mode == 'hard':  # inference
@@ -243,15 +241,15 @@ class MoChA(nn.Module):
                         bd_R += tail_len
                     bd_L_ca = max(0, bd_L + 1 - self.w) if not self.milk else 0
 
-                    e_ca = self.chunk_energy(key, query, mask, cache, bd_L_ca, bd_R)  # `[B, (H_ma*)H_ca, qlen, klen]`
-                    assert e_ca.size(3) == bd_R - bd_L_ca + 1, (e_ca.size(), bd_L_ca, bd_R, key.size())
+                    chunkwise_energy = self.chunk_energy(key, query, mask, cache, bd_L_ca, bd_R)  # `[B, (n_head_monotonic*)n_head_chunkwise_attention, qlen, klen]`
+                    assert chunkwise_energy.size(3) == bd_R - bd_L_ca + 1, (chunkwise_energy.size(), bd_L_ca, bd_R, key.size())
 
                     if alpha_masked.size(3) < klen:
                         # back to the original shape
-                        alpha_masked = torch.cat([alpha.new_zeros(bs, self.H_ma, qlen, klen - alpha_masked.size(3)),
+                        alpha_masked = torch.cat([alpha.new_zeros(bs, self.n_head_monotonic, qlen, klen - alpha_masked.size(3)),
                                                   alpha_masked], dim=3)
                     if use_tail:
-                        alpha_masked = torch.cat([alpha.new_zeros(bs, self.H_ma, qlen, tail_len),
+                        alpha_masked = torch.cat([alpha.new_zeros(bs, self.n_head_monotonic, qlen, tail_len),
                                                   alpha_masked], dim=3)
                         value = torch.cat([self.key_tail[0:1], value[0:1]], dim=1)
 
@@ -259,19 +257,19 @@ class MoChA(nn.Module):
                     value = value[:, bd_L_ca:bd_R + 1]
                     # NOTE: alpha_masked must have the same shape as beta
 
-                    beta = hard_chunkwise_attention(alpha_masked, e_ca, mask, self.w,
-                                                    self.H_ca, self.sharpening_factor,
-                                                    self.share_ca)  # `[B, H_ma * H_ca, qlen, klen]`
+                    beta = hard_chunkwise_attention(alpha_masked, chunkwise_energy, mask, self.w,
+                                                    self.n_head_chunkwise_attention, self.sharpening_factor,
+                                                    self.share_ca)  # `[B, n_head_monotonic * n_head_chunkwise_attention, qlen, klen]`
                     beta = self.dropout_attn(beta)
 
                     assert beta.size() == (bs, self.H_total, qlen, bd_R - bd_L_ca + 1), \
                         (beta.size(), (bs, self.H_total, qlen, bd_L_ca, bd_R))
             else:
-                e_ca = self.chunk_energy(key, query, mask, cache, 0, bd_R)  # `[B, (H_ma*)H_ca, qlen, klen]`
+                chunkwise_energy = self.chunk_energy(key, query, mask, cache, 0, bd_R)  # `[B, (n_head_monotonic*)n_head_chunkwise_attention, qlen, klen]`
 
-                beta = soft_chunkwise_attention(alpha_masked, e_ca, mask, self.w,
-                                                self.H_ca, self.sharpening_factor,
-                                                self.share_ca)  # `[B, H_ma * H_ca, qlen, klen]`
+                beta = soft_chunkwise_attention(alpha_masked, chunkwise_energy, mask, self.w,
+                                                self.n_head_chunkwise_attention, self.sharpening_factor,
+                                                self.share_ca)  # `[B, n_head_monotonic * n_head_chunkwise_attention, qlen, klen]`
                 beta = self.dropout_attn(beta)
                 assert beta.size() == (bs, self.H_total, qlen, klen), \
                     (beta.size(), (bs, self.H_total, qlen, klen))
@@ -283,8 +281,8 @@ class MoChA(nn.Module):
         if self.H_total > 1:
             v = self.w_value(value).view(bs, -1, self.H_total, self.d_k)
             # TODO: cache at test time
-            v = v.transpose(2, 1).contiguous()  # `[B, H_ma * H_ca, klen, d_k]`
-            cv = torch.matmul(alpha_masked if self.w == 1 else beta, v)  # `[B, H_ma * H_ca, qlen, d_k]`
+            v = v.transpose(2, 1).contiguous()  # `[B, n_head_monotonic * n_head_chunkwise_attention, klen, d_k]`
+            cv = torch.matmul(alpha_masked if self.w == 1 else beta, v)  # `[B, n_head_monotonic * n_head_chunkwise_attention, qlen, d_k]`
             cv = cv.transpose(2, 1).contiguous().view(bs, -1, self.H_total * self.d_k)
             cv = self.w_out(cv)  # `[B, qlen, adim]`
         else:
@@ -302,8 +300,8 @@ class MoChA(nn.Module):
             if is_boundary:
                 alpha[:, :, :, bd_L:bd_R + 1] = alpha_masked[:, :, :, -(bd_R - bd_L + 1):]
 
-        assert alpha.size() == (bs, self.H_ma, qlen, klen), \
-            (alpha.size(), (bs, self.H_ma, qlen, klen, bd_L, bd_R))
+        assert alpha.size() == (bs, self.n_head_monotonic, qlen, klen), \
+            (alpha.size(), (bs, self.n_head_monotonic, qlen, klen, bd_L, bd_R))
 
         attn_state['beta'] = beta
         attn_state['p_choose'] = p_choose

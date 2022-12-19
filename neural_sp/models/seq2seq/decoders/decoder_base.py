@@ -198,7 +198,7 @@ class DecoderBase(ModelBase):
                 plt.plot(times_probs, probs[:, 0], ':', label='<blank>', color='grey')
             else:
                 plt.plot(times_probs, probs[:, idx])
-        plt.xlabel(u'Time [frame]', fontsize=12)
+        plt.xlabel('Time [frame]', fontsize=12)
         plt.ylabel('Posteriors', fontsize=12)
         plt.xticks(list(range(0, int(n_frames) + 1, 10)))
         plt.yticks(list(range(0, 2, 1)))

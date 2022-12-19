@@ -57,7 +57,7 @@ def plot_attention_weights(aw, tokens=[], spectrogram=None, factor=4,
                     yticklabels=tokens if len(tokens) > 0 else False,
                     cbar=False,
                     cbar_kws={"orientation": "horizontal"})
-        plt.ylabel(u'Output labels (←)', fontsize=12 if n_heads == 1 else 8)
+        plt.ylabel('Output labels (←)', fontsize=12 if n_heads == 1 else 8)
         plt.yticks(rotation=0, fontsize=6)
 
     # Plot CTC probabilities for joint CTC-attention
@@ -95,8 +95,8 @@ def plot_attention_weights(aw, tokens=[], spectrogram=None, factor=4,
         freq = 200  # for plot
         plt.xticks(np.arange(0, len(spectrogram) + 1, freq),
                    np.arange(0, len(spectrogram) * factor + 1, freq * factor))
-        plt.xlabel(u'Time [frame/10ms]', fontsize=12)
-        plt.ylabel(u'Frequency bin', fontsize=12 if n_heads == 1 else 8)
+        plt.xlabel('Time [frame/10ms]', fontsize=12)
+        plt.ylabel('Frequency bin', fontsize=12 if n_heads == 1 else 8)
         # plt.colorbar()
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
 
@@ -139,7 +139,7 @@ def plot_hierarchical_attention_weights(aw, aw_sub, tokens=[], tokens_sub=[],
     sns.heatmap(aw[0], cmap='viridis',
                 xticklabels=False,
                 yticklabels=tokens if len(tokens) > 0 else False)
-    plt.ylabel(u'Output labels (main) (←)', fontsize=12)
+    plt.ylabel('Output labels (main) (←)', fontsize=12)
     plt.yticks(rotation=0, fontsize=6)
 
     plt.subplot(n_col, 1, 2)
@@ -147,8 +147,8 @@ def plot_hierarchical_attention_weights(aw, aw_sub, tokens=[], tokens_sub=[],
                 xticklabels=False,
                 yticklabels=tokens_sub if len(tokens_sub) > 0 else False)
     if spectrogram is None:
-        plt.xlabel(u'Time [frame]', fontsize=12)
-    plt.ylabel(u'Output labels (sub) (←)', fontsize=12)
+        plt.xlabel('Time [frame]', fontsize=12)
+    plt.ylabel('Output labels (sub) (←)', fontsize=12)
     plt.yticks(rotation=0, fontsize=6)
 
     # Plot spectrogram
@@ -158,8 +158,8 @@ def plot_hierarchical_attention_weights(aw, aw_sub, tokens=[], tokens_sub=[],
         freq = 200  # for plot
         plt.xticks(np.arange(0, len(spectrogram) + 1, freq),
                    np.arange(0, len(spectrogram) * factor + 1, freq * factor))
-        plt.xlabel(u'Time [frame/10ms]', fontsize=12)
-        plt.ylabel(u'Frequency bin', fontsize=12)
+        plt.xlabel('Time [frame/10ms]', fontsize=12)
+        plt.ylabel('Frequency bin', fontsize=12)
         # plt.colorbar()
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
 
@@ -211,7 +211,7 @@ def plot_ctc_probs(ctc_probs, topk_ids, spectrogram=None, factor=4,
         else:
             plt.plot(times_probs, ctc_probs[:, idx])
     if spectrogram is None:
-        plt.xlabel(u'Time [frame]', fontsize=12)
+        plt.xlabel('Time [frame]', fontsize=12)
     plt.ylabel('Posteriors', fontsize=12)
     plt.tick_params(labelbottom=False)
     plt.yticks(list(range(0, 2, 1)))
@@ -223,8 +223,8 @@ def plot_ctc_probs(ctc_probs, topk_ids, spectrogram=None, factor=4,
         freq = 200  # for plot
         plt.xticks(np.arange(0, len(spectrogram) + 1, freq),
                    np.arange(0, len(spectrogram) * factor + 1, freq * factor))
-        plt.xlabel(u'Time [frame/10ms]', fontsize=12)
-        plt.ylabel(u'Frequency bin', fontsize=12)
+        plt.xlabel('Time [frame/10ms]', fontsize=12)
+        plt.ylabel('Frequency bin', fontsize=12)
         # plt.colorbar()
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
 
@@ -292,7 +292,7 @@ def plot_hierarchical_ctc_probs(ctc_probs, topk_ids, ctc_probs_sub, topk_ids_sub
         else:
             plt.plot(times_probs, ctc_probs_sub[:, idx])
     if spectrogram is None:
-        plt.xlabel(u'Time [frame]', fontsize=12)
+        plt.xlabel('Time [frame]', fontsize=12)
     plt.ylabel('Posteriors (Char)', fontsize=12)
     plt.ylim([0.05, 1.05])
     plt.yticks(list(range(0, 2, 1)))
@@ -305,8 +305,8 @@ def plot_hierarchical_ctc_probs(ctc_probs, topk_ids, ctc_probs_sub, topk_ids_sub
         freq = 200  # for plot
         plt.xticks(np.arange(0, len(spectrogram) + 1, freq),
                    np.arange(0, len(spectrogram) * factor + 1, freq * factor))
-        plt.xlabel(u'Time [frame/10ms]', fontsize=12)
-        plt.ylabel(u'Frequency bin', fontsize=12)
+        plt.xlabel('Time [frame/10ms]', fontsize=12)
+        plt.ylabel('Frequency bin', fontsize=12)
         # plt.colorbar()
         ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
 

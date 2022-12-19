@@ -19,9 +19,9 @@ dec_type: transformer
 dec_n_layers: 6
 transformer_dec_pe_type: 1dconv3L  ### this is effective
 transformer_dec_attn_type: mocha
-mocha_n_heads_mono: 1
-mocha_n_heads_chunk: 4  ###
-mocha_chunk_size: 16  ###
+mocha_n_heads_mono: 1   # MonotonicEnergy的head数量（如果>1，那么每个头的停止关注点有可能不同）
+mocha_n_heads_chunk: 4  # ChunkEnergy的head数量
+mocha_chunk_size: 16    # Chunk-wise的窗口大小（注意过小会注意不到该注意的feature，-1的话则可以一直看到开头）
 mocha_init_r: -2.0
 mocha_eps: 1e-6
 mocha_std: 1.0

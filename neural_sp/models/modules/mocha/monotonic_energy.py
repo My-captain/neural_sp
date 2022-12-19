@@ -63,8 +63,7 @@ class MonotonicEnergy(nn.Module):
 
         self.conv1d = None
         if conv1d:
-            self.conv1d = nn.Conv1d(kdim, kdim, conv_kernel_size,
-                                    padding=(conv_kernel_size - 1) // 2)
+            self.conv1d = nn.Conv1d(kdim, kdim, conv_kernel_size, padding=(conv_kernel_size - 1) // 2)
             # NOTE: lookahead is introduced
             for n, p in self.conv1d.named_parameters():
                 init_with_lecun_normal(n, p, 0.1)
@@ -95,13 +94,12 @@ class MonotonicEnergy(nn.Module):
         self.key = None
         self.mask = None
 
-    def forward(self, key, query, mask, cache=False,
-                boundary_leftmost=0, boundary_rightmost=100000):
-        """Compute monotonic energy.
+    def forward(self, key, query, mask, cache=False, boundary_leftmost=0, boundary_rightmost=100000):
+        """计算Monotonic Energy
         query为token embedding；key为encoder output
         Args:
-            key (FloatTensor): `[B, klen, kdim]`
-            query (FloatTensor): `[B, qlen, qdim]`
+            key (FloatTensor):   key为TransformerEncoder输出的特征向量      [B, klen, kdim]`
+            query (FloatTensor): query是经过多层TransformerDecoder的tokens [B, qlen, qdim]
             mask (ByteTensor): `[B, qlen, klen]`
             cache (bool): cache key and mask
             boundary_leftmost (int): leftmost boundary offset
@@ -152,6 +150,7 @@ class MonotonicEnergy(nn.Module):
         if m is not None:
             NEG_INF = float(np.finfo(torch.tensor(0, dtype=e.dtype).numpy().dtype).min)
             e = e.masked_fill_(m == 0, NEG_INF)
-        e = e.permute(0, 3, 1, 2)  # `[B, H_ma, qlen, klen]`
+        # `[B, H_ma, qlen, klen]`
+        e = e.permute(0, 3, 1, 2)
 
         return e

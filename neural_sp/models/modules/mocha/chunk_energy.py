@@ -67,13 +67,12 @@ class ChunkEnergy(nn.Module):
         self.key = None
         self.mask = None
 
-    def forward(self, key, query, mask, cache=False,
-                boundary_leftmost=0, boundary_rightmost=100000):
-        """Compute chunkwise energy.
+    def forward(self, key, query, mask, cache=False, boundary_leftmost=0, boundary_rightmost=100000):
+        """计算Chunkwise Energy
 
         Args:
-            key (FloatTensor): `[B, klen, kdim]`
-            query (FloatTensor): `[B, qlen, qdim]`
+            key (FloatTensor):      key为TransformerEncoder输出的特征向量      [B, klen, kdim]`
+            query (FloatTensor):    query是经过多层TransformerDecoder的tokens [B, qlen, qdim]
             mask (ByteTensor): `[B, qlen, klen]`
             cache (bool): cache key and mask
             boundary_leftmost (int): leftmost boundary offset
@@ -96,7 +95,8 @@ class ChunkEnergy(nn.Module):
                 self.mask = None
 
         k = self.key
-        if k.size(0) != bs:  # for infernece
+        # for inference
+        if k.size(0) != bs:
             k = k[0:1].repeat([bs, 1, 1, 1])
         klen = k.size(1)
         q = self.w_query(query).view(-1, qlen, self.n_heads, self.d_k)  # `[B, qlen, H_ca, d_k]`

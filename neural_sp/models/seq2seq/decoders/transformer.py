@@ -686,6 +686,7 @@ class TransformerDecoder(DecoderBase):
                      'streamable': True,
                      'streaming_failed_point': 1000}]
             streamable_global = True
+            # 最长解码长度
             ymax = math.ceil(elens[b] * max_len_ratio)
             for i in range(ymax):
                 # batchfy all hypotheses for batch decoding
@@ -701,14 +702,14 @@ class TransformerDecoder(DecoderBase):
                 else:
                     xy_aws_prev = None
 
-                # Update LM states for shallow fusion
+                # 更新 languageModel 参数
                 y_lm = ys[:, -1:].clone()  # NOTE: this is important
                 _, lmstate, scores_lm = helper.update_rnnlm_state_batch(lm, hyps, y_lm)
 
                 # for the main model
                 causal_mask = eouts.new_ones(i + 1, i + 1, dtype=torch.uint8)
                 causal_mask = torch.tril(causal_mask).unsqueeze(0).repeat([ys.size(0), 1, 1])
-                # TODO ？？？
+                # TODO 从未见过的PositionalEncoding
                 out = self.pos_enc(self.embed_token_id(ys), scale=True)  # scaled + dropout
 
                 n_heads_total = 0
@@ -718,11 +719,9 @@ class TransformerDecoder(DecoderBase):
                 xy_aws = None
                 lth_s = self.mma_first_layer - 1
                 for lth, layer in enumerate(self.layers):
-                    out = layer(
-                        out, causal_mask, eouts_b, None,
-                        cache=cache[lth],
-                        xy_aws_prev=xy_aws_prev[:, lth - lth_s] if lth >= lth_s and i > 0 else None,
-                        eps_wait=eps_wait)
+                    out = layer(out, causal_mask, eouts_b, None, cache=cache[lth],
+                                xy_aws_prev=xy_aws_prev[:, lth - lth_s] if lth >= lth_s and i > 0 else None,
+                                eps_wait=eps_wait)
                     xy_aws = layer.xy_aws
 
                     new_cache[lth] = out
@@ -737,8 +736,7 @@ class TransformerDecoder(DecoderBase):
                 if n_models > 1 and cache_states and i > 0:
                     for i_e, dec in enumerate(ensmbl_decs):
                         for lth in range(dec.n_layers):
-                            ensmbl_cache[i_e][lth] = torch.cat([beam['ensmbl_cache'][i_e][lth]
-                                                                for beam in hyps], dim=0)
+                            ensmbl_cache[i_e][lth] = torch.cat([beam['ensmbl_cache'][i_e][lth] for beam in hyps], dim=0)
 
                 # for the ensemble
                 ensmbl_new_cache = [[None] * dec.n_layers for dec in ensmbl_decs]

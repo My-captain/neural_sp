@@ -177,9 +177,9 @@ class TransformerDecoderBlock(nn.Module):
         """Transformer decoder forward pass.
 
         Args:
-            ys (FloatTensor): `[B, L, d_model]`     sos+token序列的embeddings
-            yy_mask (ByteTensor): `[B, L (query), L (key)]`
-            xs (FloatTensor): encoder outputs. `[B, T, d_model]`    encoder输出的特征向量
+            ys (FloatTensor):       sos+token序列的embeddings [B, L, d_model]
+            yy_mask (ByteTensor):   [B, L (query), L (key)]
+            xs (FloatTensor):       encoder输出的特征向量 [B, T, d_model]
             xy_mask (ByteTensor): `[B, L, T]`
             cache (FloatTensor): `[B, L-1, d_model]`
             xy_aws_prev (FloatTensor): `[B, H, L, T]`
@@ -231,9 +231,9 @@ class TransformerDecoderBlock(nn.Module):
         if self.src_tgt_attention:
             residual = out
             out = self.norm2(out)
-            out, self._xy_aws, attn_state = self.src_attn(
-                xs, xs, out, mask=xy_mask,  # k/v/q
-                aw_prev=xy_aws_prev, mode=mode, eps_wait=eps_wait)
+            # query是经过3层TransformerDecoder的token embeddings
+            # key和value均是TransformerEncoder输出的feature token embeddings
+            out, self._xy_aws, attn_state = self.src_attn(xs, xs, out, mask=xy_mask, aw_prev=xy_aws_prev, mode=mode, eps_wait=eps_wait)
             out = self.dropout(out) + residual
 
             if attn_state.get('beta', None) is not None:
